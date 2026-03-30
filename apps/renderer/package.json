@@ -1,0 +1,28 @@
+{
+  "name": "renderer",
+  "scripts": {
+    "dev": "nodemon --exec ts-node -r tsconfig-paths/register src/server.ts",
+    "start": "ts-node src/server.ts"
+  },
+  "dependencies": {
+    "@remotion/bundler": "^4.0.438",
+    "@remotion/renderer": "^4.0.438",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "execa": "^9.6.1",
+    "express": "^5.2.1",
+    "fs-extra": "^11.3.4",
+    "p-limit": "^7.3.0",
+    "pino": "^10.3.1",
+    "tsconfig-paths": "^4.2.0",
+    "uuid": "^13.0.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "nodemon": "^3.1.14",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.2"
+  }
+}

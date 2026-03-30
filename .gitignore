@@ -1,0 +1,5 @@
+storage
+node_modules
+.remotion-bundle
+apps/renderer/.bundle
+.env

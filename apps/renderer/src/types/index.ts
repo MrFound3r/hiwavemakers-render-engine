@@ -1,0 +1,31 @@
+// export interface VideoFragments {
+//   id: string;
+//   src: string;
+//   order: string;
+// }
+
+// export interface InputProps {
+//   studentName: string;
+//   className: string;
+//   fragments: VideoFragments[];
+//   outro: string;
+// }
+
+// export interface RenderJob {
+//   inputProps?: InputProps;
+//   compositionId: string;
+//   id: string;
+// }
+
+// export type QueueStatus = "pending" | "processing" | "done" | "failed";
+
+// export interface QueueJob {
+//   id: string;
+//   composition_id: string;
+//   status: string;
+//   input: string;
+//   output_path: string;
+//   error: string;
+//   created_at: string;
+//   updated_at: string;
+// }

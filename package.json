@@ -1,0 +1,21 @@
+{
+  "name": "hiwavemakers-render-engine",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev -w apps/web",
+    "dev:renderer": "npm run dev -w apps/renderer",
+    "build": "npm run build -w packages/remotion"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "turbo": "^2.8.20",
+    "typescript": "^6.0.2"
+  },
+  "dependencies": {
+    "eslint": "^10.1.0"
+  }
+}
