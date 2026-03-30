@@ -15,9 +15,9 @@ import * as dotenv from "dotenv";
 
 dotenv.config();
 
-const VIDEO_RENDER_CONCURRENCY = parseInt(process.env.VIDEO_RENDER_CONCURRENCY ?? "1", 10);
+const VIDEO_RENDER_JOB_CONCURRENCY = parseInt(process.env.VIDEO_RENDER_JOB_CONCURRENCY ?? "1", 10);
 
-const limit = pLimit(VIDEO_RENDER_CONCURRENCY);
+const limit = pLimit(VIDEO_RENDER_JOB_CONCURRENCY);
 
 export function startWorker() {
   setInterval(async () => {
