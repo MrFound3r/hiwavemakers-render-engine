@@ -10,6 +10,8 @@ export const RemotionRoot = () => {
         durationInFrames={300} // placeholder fallback
         defaultProps={{
           timeline: [],
+          studentName: "Student Name",
+          className: "Class Name",
         }}
         fps={30}
         width={1920}
