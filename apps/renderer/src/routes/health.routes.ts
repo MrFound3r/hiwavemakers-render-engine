@@ -1,5 +1,4 @@
 // apps/renderer/src/routes/health.routes.ts
-
 import { Router } from "express";
 
 const router = Router();

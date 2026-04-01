@@ -1,7 +1,10 @@
-import fs from "fs";
-import path from "path";
 import { getVideoDurationInSeconds } from "@video-utils/index";
 import { Timeline, TimelineItem } from "./types";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+const INTRO_DURATION_SECONDS = parseInt(process.env.INTRO_DURATION_SECONDS || "5", 10);
 
 type BuildTimelineInput = {
   fragments: {
@@ -10,7 +13,8 @@ type BuildTimelineInput = {
     order: number;
   }[];
   intro: {
-    durationInFrames: number;
+    src?: string;
+    durationInFrames?: number;
   };
   outro: {
     src: string;
@@ -37,19 +41,19 @@ export async function buildTimeline(input: BuildTimelineInput): Promise<Timeline
   const items: TimelineItem[] = [];
 
   // 2. Add intro
+  const introPlaybackRate = 1;
+  const introPublicUrl = intro.src;
+  const introDurationSec = introPublicUrl ? await getVideoDurationInSeconds(introPublicUrl) : INTRO_DURATION_SECONDS;
+  const introDurationInFrames = Math.floor((introDurationSec * fps) / introPlaybackRate);
   items.push({
     type: "intro",
-    durationInFrames: intro.durationInFrames,
+    src: introPublicUrl,
+    durationInFrames: introDurationInFrames,
   });
 
   // 3. Process fragments
   for (const fragment of sortedFragments) {
     const publicUrl = fragment.src;
-
-    // Validate file exists
-    // if (!fs.existsSync(absPath)) {
-    //   throw new Error(`Fragment file not found: ${absPath}`);
-    // }
 
     // Get duration
     const durationSec = await getVideoDurationInSeconds(publicUrl);
@@ -79,10 +83,6 @@ export async function buildTimeline(input: BuildTimelineInput): Promise<Timeline
   const outroPublicUrl = outro.src;
   const outroDurationSec = await getVideoDurationInSeconds(outroPublicUrl);
   const outroDurationInFrames = Math.floor((outroDurationSec * fps) / outroPlaybackRate);
-
-  // if (!fs.existsSync(outroPath)) {
-  //   throw new Error(`Outro file not found: ${outroPath}`);
-  // }
 
   items.push({
     type: "outro",

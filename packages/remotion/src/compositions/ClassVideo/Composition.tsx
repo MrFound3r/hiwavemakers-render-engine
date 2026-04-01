@@ -1,8 +1,11 @@
+// src/packages/remotion/src/compositions/classVideo/Composition.tsx
+import { Sequence, OffthreadVideo, AbsoluteFill, Html5Audio } from "remotion";
 import { Intro } from "../../components/Intro";
-import { Sequence, OffthreadVideo, AbsoluteFill } from "remotion";
+import { VideoFrame } from "../../components/VideoFrame";
+import { FadeTransition } from "../../components/animations/FadeTransition";
 
 type TimelineItem =
-  | { type: "intro"; durationInFrames: number }
+  | { type: "intro"; src?: string; durationInFrames: number }
   | {
       type: "video";
       src: string;
@@ -15,22 +18,38 @@ type TimelineItem =
       durationInFrames: number;
     };
 
-export const ClassVideo = ({
-  timeline,
-  studentName,
-  className,
-}: {
+type InputProps = {
   timeline: TimelineItem[];
   studentName: string;
-  className: string;
-}) => {
-  let currentFrame = 0;
+  className?: string;
+  backgroundAudio?: {
+    src: string;
+    volume?: number;
+  };
+};
+
+export const ClassVideo = ({ timeline, studentName, className, backgroundAudio }: InputProps) => {
+  const sequences = timeline.map((item, index) => {
+    const start = timeline.slice(0, index).reduce((sum, i) => sum + i.durationInFrames, 0);
+
+    return { item, start, index };
+  });
+  const TRANSITION_DURATION = 15;
 
   return (
     <AbsoluteFill>
-      {timeline.map((item, index) => {
-        const start = currentFrame;
-        currentFrame += item.durationInFrames;
+      {backgroundAudio && (
+        <Html5Audio
+          src={backgroundAudio.src}
+          volume={backgroundAudio.volume ?? 0.2}
+        />
+      )}
+
+      {sequences.map(({ item, start, index }) => {
+        const isFirst = index === 0;
+
+        const from = isFirst ? start : start - TRANSITION_DURATION;
+        const duration = item.durationInFrames + (isFirst ? 0 : TRANSITION_DURATION);
 
         if (item.type === "intro") {
           return (
@@ -38,10 +57,13 @@ export const ClassVideo = ({
               key={index}
               from={start}
               durationInFrames={item.durationInFrames}>
-              <Intro
-                studentName={studentName}
-                className={className}
-              />
+              <FadeTransition duration={TRANSITION_DURATION}>
+                <Intro
+                  studentName={studentName}
+                  className={className}
+                  backgroundSrc={item.src}
+                />
+              </FadeTransition>
             </Sequence>
           );
         }
@@ -50,12 +72,21 @@ export const ClassVideo = ({
           return (
             <Sequence
               key={index}
-              from={start}
-              durationInFrames={item.durationInFrames}>
-              <OffthreadVideo
-                src={item.src}
-                playbackRate={item.playbackRate || 1}
-              />
+              from={from}
+              durationInFrames={duration}>
+              <FadeTransition duration={TRANSITION_DURATION}>
+                <VideoFrame>
+                  <OffthreadVideo
+                    src={item.src}
+                    playbackRate={item.playbackRate || 1}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "contain",
+                    }}
+                  />
+                </VideoFrame>
+              </FadeTransition>
             </Sequence>
           );
         }
@@ -64,9 +95,20 @@ export const ClassVideo = ({
           return (
             <Sequence
               key={index}
-              from={start}
-              durationInFrames={item.durationInFrames}>
-              <OffthreadVideo src={item.src} />
+              from={from}
+              durationInFrames={duration}>
+              <FadeTransition duration={TRANSITION_DURATION}>
+                <VideoFrame>
+                  <OffthreadVideo
+                    src={item.src}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "contain",
+                    }}
+                  />
+                </VideoFrame>
+              </FadeTransition>
             </Sequence>
           );
         }

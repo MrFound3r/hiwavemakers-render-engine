@@ -1,3 +1,5 @@
+// src/packages/remotion/src/index.tsx
+
 import { registerRoot } from "remotion";
 import { RemotionRoot } from "./Root";
 

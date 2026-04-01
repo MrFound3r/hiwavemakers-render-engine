@@ -2,6 +2,7 @@ export type TimelineItem =
   | {
       type: "intro";
       durationInFrames: number;
+      src?: string;
     }
   | {
       type: "video";

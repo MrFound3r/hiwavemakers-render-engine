@@ -4,8 +4,15 @@ export const RenderRequestFromPropsSchema = z.object({
   compositionId: z.string(),
   inputProps: z.object({
     outro: z.string(),
+    intro: z.string().optional(),
+    backgroundAudio: z
+      .object({
+        src: z.string(),
+        volume: z.number().optional(),
+      })
+      .optional(),
     studentName: z.string(),
-    className: z.string(),
+    className: z.string().optional(),
     fragments: z.array(
       z.object({
         id: z.string(),

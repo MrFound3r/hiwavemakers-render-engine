@@ -7,9 +7,14 @@ export interface VideoFragments {
 
 export interface InputProps {
   studentName: string;
-  className: string;
+  className?: string;
   fragments: Array<VideoFragments>;
   outro: string;
+  intro?: string;
+  backgroundAudio?: {
+    src: string;
+    volume?: number;
+  }
 }
 
 export type QueueJob = {

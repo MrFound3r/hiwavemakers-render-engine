@@ -1,12 +1,11 @@
 // apps/renderer/src/routes/render.routes.ts
-
 import { Router } from "express";
 import { enqueueJobs } from "@queue/index";
-import { cancelRender } from "../render";
 import { RenderRequestFromPropsSchema, BatchRenderFromPropsSchema } from "@templates/schemas/renderRequest.schema";
 import { db } from "packages/db";
 import z from "zod";
 import { v4 as uuidv4 } from "uuid";
+import { cancelRender } from "../services/render.services";
 
 const router = Router();
 
@@ -20,7 +19,14 @@ router.post("/", async (req, res) => {
     const jobs = parsed.map((item) => ({
       id: uuidv4(),
       compositionId: item.compositionId,
-      inputProps: item.inputProps,
+      inputProps: {
+        studentName: item.inputProps.studentName,
+        className: item.inputProps.className,
+        fragments: item.inputProps.fragments,
+        outro: item.inputProps.outro,
+        intro: item.inputProps.intro,
+        backgroundAudio: item.inputProps.backgroundAudio,
+      },
     }));
 
     const result = await enqueueJobs(jobs);

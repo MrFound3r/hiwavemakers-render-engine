@@ -9,9 +9,9 @@ import {
   incrementAttempts,
   claimNextJob,
 } from "@queue/index";
-import { renderJob } from "./render";
 import { db } from "packages/db";
 import * as dotenv from "dotenv";
+import { renderJob } from "./jobs/render.jobs";
 
 dotenv.config();
 

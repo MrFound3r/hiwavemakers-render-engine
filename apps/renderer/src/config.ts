@@ -1,3 +1,4 @@
+// apps/renderer/src/config.ts
 import path from "path";
 import dotenv from "dotenv";
 
@@ -19,6 +20,8 @@ export const config = {
   bundlePath: path.resolve(appDir, process.env.REMOTION_BUNDLE_PATH || ".bundle"),
 
   fps: Number(process.env.FPS) || 30,
-  width: Number(process.env.WIDTH) || 1920,
-  height: Number(process.env.HEIGHT) || 1080,
+  portraitWidth: Number(process.env.PORTRAIT_WIDTH) || 1080,
+  portraitHeight: Number(process.env.PORTRAIT_HEIGHT) || 1920,
+  landscapeWidth: Number(process.env.LANDSCAPE_WIDTH) || 1920,
+  landscapeHeight: Number(process.env.LANDSCAPE_HEIGHT) || 1080,
 };

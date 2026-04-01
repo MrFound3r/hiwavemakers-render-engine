@@ -1,7 +1,6 @@
 // apps/renderer/src/routes/utils.routes.ts
-
 import { Router } from "express";
-import { buildTimelineJob, getVideoDurationInSecondsJob } from "../render";
+import { buildTimelineService, getVideoDurationInSecondsService } from "../services/utils.services";
 import fs from "fs";
 import multer from "multer";
 import { paths } from "packages/config/path";
@@ -51,14 +50,14 @@ router.post("/recording_upload", recordingUpload.single("file"), async (req, res
 
 // POST /get-duration-seconds
 router.post("/get-duration-seconds", async (req, res) => {
-	const result = await getVideoDurationInSecondsJob(req.body);
-	res.json(result);
+  const result = await getVideoDurationInSecondsService(req.body);
+  res.json(result);
 });
 
 // POST /build-timeline
 router.post("/build-timeline", async (req, res) => {
-	const result = await buildTimelineJob(req.body);
-	res.json(result);
+  const result = await buildTimelineService(req.body);
+  res.json(result);
 });
 
 export default router;

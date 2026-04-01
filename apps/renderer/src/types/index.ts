@@ -1,21 +1,12 @@
-// export interface VideoFragments {
-//   id: string;
-//   src: string;
-//   order: string;
-// }
+import { InputProps } from "@queue/types";
 
-// export interface InputProps {
-//   studentName: string;
-//   className: string;
-//   fragments: VideoFragments[];
-//   outro: string;
-// }
 
-// export interface RenderJob {
-//   inputProps?: InputProps;
-//   compositionId: string;
-//   id: string;
-// }
+
+export interface RenderJob {
+  inputProps: InputProps;
+  compositionId: string;
+  id: string;
+}
 
 // export type QueueStatus = "pending" | "processing" | "done" | "failed";
 

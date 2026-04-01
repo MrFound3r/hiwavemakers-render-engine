@@ -1,17 +1,17 @@
-// apps/renderer/src/render.ts
+// apps/renderer/src/jobs/render.jobs.ts
 import { bundle } from "@remotion/bundler";
 import { makeCancelSignal, renderMedia } from "@remotion/renderer";
-import { config } from "./config";
+import { config } from "../config";
 import path from "path";
-import { getVideoDurationInSeconds } from "@video-utils/index";
 import { buildTimeline } from "@templates/index";
 import { getCompositions } from "@remotion/renderer";
 import * as dotenv from "dotenv";
 import { db } from "packages/db";
+import { RenderJob } from "../types";
 dotenv.config();
 
 // 0. Create cancel signal
-const activeRenders = new Map<string, { cancel: () => void }>();
+export const activeRenders = new Map<string, { cancel: () => void }>();
 
 let bundleLocation: string | null = null;
 const VIDEO_RENDER_CONCURRENCY = parseInt(process.env.VIDEO_RENDER_CONCURRENCY ?? "4", 10);
@@ -23,7 +23,6 @@ console.log("Video Render Concurrency set to:", VIDEO_RENDER_CONCURRENCY);
 async function getBundle() {
   if (!bundleLocation) {
     bundleLocation = await bundle({
-      // entryPoint: path.resolve("../../packages/remotion/src/index.ts"),
       entryPoint: require.resolve("@remotion/index"),
       outDir: config.bundlePath,
     });
@@ -31,16 +30,15 @@ async function getBundle() {
   return bundleLocation;
 }
 
-export async function renderJob(job: any) {
+export async function renderJob(job: RenderJob) {
   try {
     const timeline = await buildTimeline({
       fragments: job.inputProps.fragments,
       intro: {
-        durationInFrames: 90,
+        src: job.inputProps.intro,
       },
       outro: {
         src: job.inputProps.outro,
-        // durationInFrames: 90,
       },
       fps: config.fps,
     });
@@ -52,6 +50,11 @@ export async function renderJob(job: any) {
       totalFrames: timeline.totalFrames,
       studentName: job.inputProps.studentName,
       className: job.inputProps.className,
+      backgroundAudio: job.inputProps.backgroundAudio,
+      portraitWidth: config.portraitWidth,
+      portraitHeight: config.portraitHeight,
+      landscapeWidth: config.landscapeWidth,
+      landscapeHeight: config.landscapeHeight,
     };
 
     const compositions = await getCompositions(bundleLocation, {
@@ -114,51 +117,4 @@ export async function renderJob(job: any) {
     console.log("🚀 ~ renderJob ~ error:", error);
     activeRenders.delete(job.id);
   }
-}
-
-export function cancelRender(jobId: string) {
-  const active = activeRenders.get(jobId);
-
-  if (active) {
-    active.cancel();
-    return true;
-  }
-
-  return false;
-}
-
-export async function getVideoDurationInSecondsJob(job: any) {
-  const testPath = job.inputProps?.testVideoPath;
-
-  if (testPath) {
-    const duration = await getVideoDurationInSeconds(testPath);
-    return {
-      ok: true,
-      durationInSeconds: duration,
-    };
-  }
-
-  return {
-    ok: false,
-    durationInSeconds: null,
-  }; // TEMPORARY — stop before rendering
-}
-
-export async function buildTimelineJob(job: any) {
-  const timeline = await buildTimeline({
-    fragments: job.inputProps.fragments,
-    intro: {
-      durationInFrames: 90, // 3 seconds @ 30fps
-    },
-    outro: {
-      src: job.inputProps.outro,
-      // durationInFrames: 90,
-    },
-    fps: config.fps,
-  });
-
-  return {
-    ok: true,
-    timeline,
-  };
 }

@@ -1,10 +1,10 @@
+// src/packages/video-utils/getVideoDuration.ts
 import ffmpeg from "fluent-ffmpeg";
 import ffprobe from "ffprobe-static";
 
 ffmpeg.setFfprobePath(ffprobe.path);
 
 export const getVideoDurationInSeconds = (filePath: string): Promise<number> => {
-  console.log("🚀 ~ getVideoDurationInSeconds ~ filePath:", filePath)
   return new Promise((resolve, reject) => {
     ffmpeg.ffprobe(filePath, (err, metadata) => {
       if (err) {
