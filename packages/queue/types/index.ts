@@ -15,6 +15,7 @@ export interface InputProps {
     src: string;
     volume?: number;
   }
+  backgroundSrc: string | null;
 }
 
 export type QueueJob = {

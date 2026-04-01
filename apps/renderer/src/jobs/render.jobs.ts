@@ -50,7 +50,10 @@ export async function renderJob(job: RenderJob) {
       totalFrames: timeline.totalFrames,
       studentName: job.inputProps.studentName,
       className: job.inputProps.className,
+
       backgroundAudio: job.inputProps.backgroundAudio,
+      backgroundSrc: job.inputProps.backgroundSrc,
+
       portraitWidth: config.portraitWidth,
       portraitHeight: config.portraitHeight,
       landscapeWidth: config.landscapeWidth,

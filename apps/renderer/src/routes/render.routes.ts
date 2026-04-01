@@ -6,11 +6,13 @@ import { db } from "packages/db";
 import z from "zod";
 import { v4 as uuidv4 } from "uuid";
 import { cancelRender } from "../services/render.services";
-
+import { getRandomBackground } from "../utils/backgrounds";
 const router = Router();
 
 // POST /render — enqueue one or many jobs
 router.post("/", async (req, res) => {
+  const backgroundSrc = getRandomBackground();
+
   try {
     const parsed = Array.isArray(req.body)
       ? BatchRenderFromPropsSchema.parse(req.body)
@@ -26,6 +28,7 @@ router.post("/", async (req, res) => {
         outro: item.inputProps.outro,
         intro: item.inputProps.intro,
         backgroundAudio: item.inputProps.backgroundAudio,
+        backgroundSrc: backgroundSrc,
       },
     }));
 

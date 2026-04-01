@@ -3,7 +3,7 @@ import { AbsoluteFill } from "remotion";
 
 export const VideoFrame = ({ children }: { children: React.ReactNode }) => {
   return (
-    <AbsoluteFill style={{ backgroundColor: "black" }}>
+    <AbsoluteFill>
       <div
         style={{
           width: "100%",
@@ -11,14 +11,12 @@ export const VideoFrame = ({ children }: { children: React.ReactNode }) => {
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-        }}
-      >
+        }}>
         <div
           style={{
             width: "100%",
             aspectRatio: "16 / 9",
-          }}
-        >
+          }}>
           {children}
         </div>
       </div>

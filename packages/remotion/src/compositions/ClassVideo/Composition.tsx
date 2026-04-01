@@ -3,6 +3,7 @@ import { Sequence, OffthreadVideo, AbsoluteFill, Html5Audio } from "remotion";
 import { Intro } from "../../components/Intro";
 import { VideoFrame } from "../../components/VideoFrame";
 import { FadeTransition } from "../../components/animations/FadeTransition";
+import { Background } from "../../components/Background";
 
 type TimelineItem =
   | { type: "intro"; src?: string; durationInFrames: number }
@@ -26,9 +27,10 @@ type InputProps = {
     src: string;
     volume?: number;
   };
+  backgroundSrc?: string;
 };
 
-export const ClassVideo = ({ timeline, studentName, className, backgroundAudio }: InputProps) => {
+export const ClassVideo = ({ timeline, studentName, className, backgroundAudio, backgroundSrc }: InputProps) => {
   const sequences = timeline.map((item, index) => {
     const start = timeline.slice(0, index).reduce((sum, i) => sum + i.durationInFrames, 0);
 
@@ -38,6 +40,8 @@ export const ClassVideo = ({ timeline, studentName, className, backgroundAudio }
 
   return (
     <AbsoluteFill>
+      <Background src={backgroundSrc} />
+
       {backgroundAudio && (
         <Html5Audio
           src={backgroundAudio.src}
