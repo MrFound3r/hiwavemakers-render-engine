@@ -8,6 +8,7 @@ import { getCompositions } from "@remotion/renderer";
 import * as dotenv from "dotenv";
 import { db } from "packages/db";
 import { RenderJob } from "../types";
+import { getMediaDurationInSeconds } from "@video-utils/index";
 dotenv.config();
 
 // 0. Create cancel signal
@@ -45,13 +46,22 @@ export async function renderJob(job: RenderJob) {
 
     const bundleLocation = await getBundle();
 
+    let backgroundAudio: { src: string; durationInSeconds: number; volume?: number } | null = null;
+    if (job.inputProps.backgroundAudio) {
+      backgroundAudio = {
+        src: job.inputProps.backgroundAudio.src,
+        durationInSeconds: await getMediaDurationInSeconds(job.inputProps.backgroundAudio.src),
+        volume: job.inputProps.backgroundAudio.volume,
+      };
+    }
+
     const inputProps = {
       timeline: timeline.items,
       totalFrames: timeline.totalFrames,
       studentName: job.inputProps.studentName,
       className: job.inputProps.className,
 
-      backgroundAudio: job.inputProps.backgroundAudio,
+      backgroundAudio: backgroundAudio,
       backgroundSrc: job.inputProps.backgroundSrc,
 
       portraitWidth: config.portraitWidth,

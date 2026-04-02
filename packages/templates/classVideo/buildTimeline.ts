@@ -1,4 +1,4 @@
-import { getVideoDurationInSeconds } from "@video-utils/index";
+import { getMediaDurationInSeconds } from "@video-utils/index";
 import { Timeline, TimelineItem } from "./types";
 import dotenv from "dotenv";
 
@@ -43,7 +43,7 @@ export async function buildTimeline(input: BuildTimelineInput): Promise<Timeline
   // 2. Add intro
   const introPlaybackRate = 1;
   const introPublicUrl = intro.src;
-  const introDurationSec = introPublicUrl ? await getVideoDurationInSeconds(introPublicUrl) : INTRO_DURATION_SECONDS;
+  const introDurationSec = introPublicUrl ? await getMediaDurationInSeconds(introPublicUrl) : INTRO_DURATION_SECONDS;
   const introDurationInFrames = Math.floor((introDurationSec * fps) / introPlaybackRate);
   items.push({
     type: "intro",
@@ -56,7 +56,7 @@ export async function buildTimeline(input: BuildTimelineInput): Promise<Timeline
     const publicUrl = fragment.src;
 
     // Get duration
-    const durationSec = await getVideoDurationInSeconds(publicUrl);
+    const durationSec = await getMediaDurationInSeconds(publicUrl);
 
     let playbackRate = 1;
 
@@ -81,7 +81,7 @@ export async function buildTimeline(input: BuildTimelineInput): Promise<Timeline
   // 4. Add outro
   const outroPlaybackRate = 1;
   const outroPublicUrl = outro.src;
-  const outroDurationSec = await getVideoDurationInSeconds(outroPublicUrl);
+  const outroDurationSec = await getMediaDurationInSeconds(outroPublicUrl);
   const outroDurationInFrames = Math.floor((outroDurationSec * fps) / outroPlaybackRate);
 
   items.push({

@@ -4,7 +4,6 @@ import { ClassVideo } from "./compositions/ClassVideo/Composition";
 
 export const RemotionRoot = () => {
   const inputProps = getInputProps();
-  console.log("🚀 ~ RemotionRoot ~ inputProps:", inputProps);
 
   const fps = Number(inputProps.fps) || 30;
   const portraitWidth = Number(inputProps.portraitWidth) || 1080;

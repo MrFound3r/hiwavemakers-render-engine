@@ -4,7 +4,7 @@ import ffprobe from "ffprobe-static";
 
 ffmpeg.setFfprobePath(ffprobe.path);
 
-export const getVideoDurationInSeconds = (filePath: string): Promise<number> => {
+export const getMediaDurationInSeconds = (filePath: string): Promise<number> => {
   return new Promise((resolve, reject) => {
     ffmpeg.ffprobe(filePath, (err, metadata) => {
       if (err) {

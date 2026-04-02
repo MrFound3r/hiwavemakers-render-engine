@@ -1,13 +1,13 @@
 // apps/renderer/src/services/utils.services.ts
 import { buildTimeline } from "@templates/index";
-import { getVideoDurationInSeconds } from "@video-utils/getVideoDuration";
+import { getMediaDurationInSeconds } from "@video-utils/getVideoDuration";
 import { config } from "../config";
 
 export async function getVideoDurationInSecondsService(job: any) {
   const testPath = job.inputProps?.testVideoPath;
 
   if (testPath) {
-    const duration = await getVideoDurationInSeconds(testPath);
+    const duration = await getMediaDurationInSeconds(testPath);
     return {
       ok: true,
       durationInSeconds: duration,

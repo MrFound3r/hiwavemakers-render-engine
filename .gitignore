@@ -1,4 +1,5 @@
-storage
+storage/renders
+storage/classes
 node_modules
 .remotion-bundle
 apps/renderer/.bundle

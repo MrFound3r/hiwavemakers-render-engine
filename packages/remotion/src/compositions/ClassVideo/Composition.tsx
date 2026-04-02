@@ -1,9 +1,10 @@
 // src/packages/remotion/src/compositions/classVideo/Composition.tsx
-import { Sequence, OffthreadVideo, AbsoluteFill, Html5Audio } from "remotion";
+import { Sequence, OffthreadVideo, AbsoluteFill,  getInputProps } from "remotion";
 import { Intro } from "../../components/Intro";
 import { VideoFrame } from "../../components/VideoFrame";
 import { FadeTransition } from "../../components/animations/FadeTransition";
 import { Background } from "../../components/Background";
+import BackgroundTrack from "../../components/BackgroundTrack";
 
 type TimelineItem =
   | { type: "intro"; src?: string; durationInFrames: number }
@@ -25,12 +26,16 @@ type InputProps = {
   className?: string;
   backgroundAudio?: {
     src: string;
+    durationInSeconds: number;
     volume?: number;
   };
   backgroundSrc?: string;
 };
 
 export const ClassVideo = ({ timeline, studentName, className, backgroundAudio, backgroundSrc }: InputProps) => {
+  const inputProps = getInputProps();
+  const fps = Number(inputProps.fps) || 30;
+
   const sequences = timeline.map((item, index) => {
     const start = timeline.slice(0, index).reduce((sum, i) => sum + i.durationInFrames, 0);
 
@@ -42,10 +47,20 @@ export const ClassVideo = ({ timeline, studentName, className, backgroundAudio, 
     <AbsoluteFill>
       <Background src={backgroundSrc} />
 
-      {backgroundAudio && (
+      {/* NOTE: Use BackgroundTrack component instead here. It allows to loop the audio track through the video duration */}
+      {/* {backgroundAudio && (
         <Html5Audio
           src={backgroundAudio.src}
           volume={backgroundAudio.volume ?? 0.2}
+        />
+      )} */}
+
+      {backgroundAudio && (
+        <BackgroundTrack
+          BASE_FPS={fps}
+          video={{ duration: sequences.reduce((sum, { item }) => sum + item.durationInFrames, 0) }}
+          audio={{ trackDuration: backgroundAudio.durationInSeconds, trackUrl: backgroundAudio.src }}
+          baseVolume={backgroundAudio.volume ?? 0.2}
         />
       )}
 
