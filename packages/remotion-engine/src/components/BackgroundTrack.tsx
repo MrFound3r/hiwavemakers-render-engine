@@ -1,3 +1,4 @@
+// packages/remotion/src/components/BackgroundTrack.tsx
 import { useMemo } from "react";
 import { interpolate, useCurrentFrame, Html5Audio, Sequence } from "remotion";
 

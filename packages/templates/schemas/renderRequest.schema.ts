@@ -3,8 +3,13 @@ import { z } from "zod";
 export const RenderRequestFromPropsSchema = z.object({
   compositionId: z.string(),
   inputProps: z.object({
-    outro: z.string(),
+    outro: z.string().optional(),
     intro: z.string().optional(),
+    background: z
+      .object({
+        src: z.string(),
+      })
+      .optional(),
     backgroundAudio: z
       .object({
         src: z.string(),

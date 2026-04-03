@@ -1,10 +1,20 @@
-// src/packages/remotion/src/compositions/classVideo/Composition.tsx
-import { Sequence, OffthreadVideo, AbsoluteFill,  getInputProps } from "remotion";
+// packages/remotion-engine/src/compositions/ClassVideo/Composition.tsx
+import React from "react";
+import { AbsoluteFill, Sequence, useVideoConfig } from "remotion";
+import { Video } from "@remotion/media";
+
 import { Intro } from "../../components/Intro";
 import { VideoFrame } from "../../components/VideoFrame";
-import { FadeTransition } from "../../components/animations/FadeTransition";
 import { Background } from "../../components/Background";
 import BackgroundTrack from "../../components/BackgroundTrack";
+import { IntroPhrases } from "../../components/IntroPhrases";
+import { FontPreloader } from "../../FontPreloader";
+import { Logo } from "../../components/Logo";
+import { OverShootTransition } from "../../components/animations/OvershootTransition";
+import { ScaleTransition } from "../../components/animations/ScaleTransition";
+import { SlideTransition } from "../../components/animations/SlideTransition";
+import { FadeTransition } from "../../components/animations/FadeTransition";
+import { EasePositionTransition } from "../../components/animations/EasePositionTransition";
 
 type TimelineItem =
   | { type: "intro"; src?: string; durationInFrames: number }
@@ -16,7 +26,7 @@ type TimelineItem =
     }
   | {
       type: "outro";
-      src: string;
+      src?: string | null;
       durationInFrames: number;
     };
 
@@ -29,44 +39,61 @@ type InputProps = {
     durationInSeconds: number;
     volume?: number;
   };
-  backgroundSrc?: string;
+  background?: {
+    src: string;
+    isVideo: boolean;
+    durationInSeconds: number;
+  } | null;
 };
 
-export const ClassVideo = ({ timeline, studentName, className, backgroundAudio, backgroundSrc }: InputProps) => {
-  const inputProps = getInputProps();
-  const fps = Number(inputProps.fps) || 30;
+export const ClassVideo: React.FC<InputProps> = ({ timeline, studentName, className, backgroundAudio, background }) => {
+  const { fps } = useVideoConfig();
+  const TRANSITION_DURATION = 15;
 
   const sequences = timeline.map((item, index) => {
-    const start = timeline.slice(0, index).reduce((sum, i) => sum + i.durationInFrames, 0);
+    const start = timeline.slice(0, index).reduce((sum, current) => sum + current.durationInFrames, 0);
 
     return { item, start, index };
   });
-  const TRANSITION_DURATION = 15;
+
+  const totalDurationInFrames = timeline.reduce((sum, item) => sum + item.durationInFrames, 0);
+
+  const muteVideo = Boolean(backgroundAudio);
 
   return (
     <AbsoluteFill>
-      <Background src={backgroundSrc} />
+      <FontPreloader />
+      <Background
+        src={background?.src}
+        durationInSeconds={background?.durationInSeconds ?? 0}
+        muteVideo={muteVideo}
+        isVideo={background?.isVideo}
+        animateImage={true}
+        wiggleEverySeconds={1}
+        wiggleAmplitudePx={27}
+      />
 
-      {/* NOTE: Use BackgroundTrack component instead here. It allows to loop the audio track through the video duration */}
-      {/* {backgroundAudio && (
-        <Html5Audio
-          src={backgroundAudio.src}
-          volume={backgroundAudio.volume ?? 0.2}
-        />
-      )} */}
-
-      {backgroundAudio && (
+      {backgroundAudio ? (
         <BackgroundTrack
           BASE_FPS={fps}
-          video={{ duration: sequences.reduce((sum, { item }) => sum + item.durationInFrames, 0) }}
-          audio={{ trackDuration: backgroundAudio.durationInSeconds, trackUrl: backgroundAudio.src }}
+          video={{ duration: totalDurationInFrames }}
+          audio={{
+            trackDuration: backgroundAudio.durationInSeconds,
+            trackUrl: backgroundAudio.src,
+          }}
           baseVolume={backgroundAudio.volume ?? 0.2}
         />
-      )}
+      ) : null}
+
+      <IntroPhrases
+        studentName={studentName}
+        firstPhraseDurationInSeconds={6}
+        otherPhrasesDurationInSeconds={7}
+        gapBetweenPhrasesInSeconds={1}
+      />
 
       {sequences.map(({ item, start, index }) => {
         const isFirst = index === 0;
-
         const from = isFirst ? start : start - TRANSITION_DURATION;
         const duration = item.durationInFrames + (isFirst ? 0 : TRANSITION_DURATION);
 
@@ -93,11 +120,13 @@ export const ClassVideo = ({ timeline, studentName, className, backgroundAudio, 
               key={index}
               from={from}
               durationInFrames={duration}>
-              <FadeTransition duration={TRANSITION_DURATION}>
+              <OverShootTransition
+                duration={5}
+                direction="left">
                 <VideoFrame>
-                  <OffthreadVideo
+                  <Video
                     src={item.src}
-                    playbackRate={item.playbackRate || 1}
+                    playbackRate={item.playbackRate ?? 1}
                     style={{
                       width: "100%",
                       height: "100%",
@@ -105,12 +134,12 @@ export const ClassVideo = ({ timeline, studentName, className, backgroundAudio, 
                     }}
                   />
                 </VideoFrame>
-              </FadeTransition>
+              </OverShootTransition>
             </Sequence>
           );
         }
 
-        if (item.type === "outro") {
+        if (item.type === "outro" && item.src) {
           return (
             <Sequence
               key={index}
@@ -118,14 +147,7 @@ export const ClassVideo = ({ timeline, studentName, className, backgroundAudio, 
               durationInFrames={duration}>
               <FadeTransition duration={TRANSITION_DURATION}>
                 <VideoFrame>
-                  <OffthreadVideo
-                    src={item.src}
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "contain",
-                    }}
-                  />
+                  <Video src={item.src} />
                 </VideoFrame>
               </FadeTransition>
             </Sequence>
@@ -134,6 +156,11 @@ export const ClassVideo = ({ timeline, studentName, className, backgroundAudio, 
 
         return null;
       })}
+
+      <Logo
+        wiggleEverySeconds={1}
+        wiggleAmplitudePx={20}
+      />
     </AbsoluteFill>
   );
 };

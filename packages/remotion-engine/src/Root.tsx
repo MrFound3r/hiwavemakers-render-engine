@@ -1,4 +1,5 @@
-// src/packages/remotion/src/Root.tsx
+// src/packages/remotion-engine/src/Root.tsx
+// import "./fonts";
 import { Composition, getInputProps } from "remotion";
 import { ClassVideo } from "./compositions/ClassVideo/Composition";
 

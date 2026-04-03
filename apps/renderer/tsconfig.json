@@ -1,7 +1,12 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
+    "rootDir": "../..",
     "outDir": "dist"
   },
-  "include": ["src"]
+  "include": [
+    "src",
+    "../../packages/templates/**/*.ts",
+    "../../packages/video-utils/**/*.ts"
+  ]
 }

@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const INTRO_DURATION_SECONDS = parseInt(process.env.INTRO_DURATION_SECONDS || "5", 10);
+const INTRO_DURATION_SECONDS = parseInt(process.env.INTRO_DURATION_SECONDS || "3", 10);
 
 type BuildTimelineInput = {
   fragments: {
@@ -17,7 +17,7 @@ type BuildTimelineInput = {
     durationInFrames?: number;
   };
   outro: {
-    src: string;
+    src?: string | null;
     durationInFrames?: number;
   };
   fps: number;
@@ -81,7 +81,7 @@ export async function buildTimeline(input: BuildTimelineInput): Promise<Timeline
   // 4. Add outro
   const outroPlaybackRate = 1;
   const outroPublicUrl = outro.src;
-  const outroDurationSec = await getMediaDurationInSeconds(outroPublicUrl);
+  const outroDurationSec = outroPublicUrl ? await getMediaDurationInSeconds(outroPublicUrl) : 0;
   const outroDurationInFrames = Math.floor((outroDurationSec * fps) / outroPlaybackRate);
 
   items.push({

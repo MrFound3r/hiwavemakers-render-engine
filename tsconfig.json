@@ -7,7 +7,7 @@
     "esModuleInterop": true,
     "baseUrl": ".",
     "paths": {
-      "@remotion/*": ["packages/remotion/src/*"],
+      "@remotion-engine/*": ["packages/remotion-engine/*"],
       "@templates/*": ["packages/templates/*"],
       "@config/*": ["packages/config/*"],
       "@queue/*": ["packages/queue/*"],

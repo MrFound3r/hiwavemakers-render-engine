@@ -7,30 +7,45 @@ import z from "zod";
 import { v4 as uuidv4 } from "uuid";
 import { cancelRender } from "../services/render.services";
 import { getRandomBackground } from "../utils/backgrounds";
+import { QueueJob } from "@queue/types";
+import { getStaticOutroVideo } from "../utils/media";
 const router = Router();
 
 // POST /render — enqueue one or many jobs
 router.post("/", async (req, res) => {
-  const backgroundSrc = getRandomBackground();
-
   try {
     const parsed = Array.isArray(req.body)
       ? BatchRenderFromPropsSchema.parse(req.body)
       : [RenderRequestFromPropsSchema.parse(req.body)];
 
-    const jobs = parsed.map((item) => ({
-      id: uuidv4(),
-      compositionId: item.compositionId,
-      inputProps: {
-        studentName: item.inputProps.studentName,
-        className: item.inputProps.className,
-        fragments: item.inputProps.fragments,
-        outro: item.inputProps.outro,
-        intro: item.inputProps.intro,
-        backgroundAudio: item.inputProps.backgroundAudio,
-        backgroundSrc: backgroundSrc,
-      },
-    }));
+    let background = getRandomBackground();
+    let outroVideo = getStaticOutroVideo();
+
+    const jobs: QueueJob[] = parsed.map((item) => {
+      let outroSrc: string | null | undefined = item.inputProps.outro;
+      if (!outroSrc) {
+        outroSrc = outroVideo;
+      }
+      if (item.inputProps.background?.src) {
+        background = {
+          src: item.inputProps.background.src,
+        };
+      }
+
+      return {
+        id: uuidv4(),
+        compositionId: item.compositionId,
+        inputProps: {
+          studentName: item.inputProps.studentName,
+          className: item.inputProps.className,
+          fragments: item.inputProps.fragments,
+          outro: outroSrc,
+          intro: item.inputProps.intro,
+          backgroundAudio: item.inputProps.backgroundAudio,
+          background: background,
+        },
+      };
+    });
 
     const result = await enqueueJobs(jobs);
     res.json(result);

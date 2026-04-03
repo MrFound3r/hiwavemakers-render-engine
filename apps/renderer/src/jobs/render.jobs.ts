@@ -1,37 +1,73 @@
 // apps/renderer/src/jobs/render.jobs.ts
 import { bundle } from "@remotion/bundler";
-import { makeCancelSignal, renderMedia } from "@remotion/renderer";
+import { makeCancelSignal, renderMedia, selectComposition } from "@remotion/renderer";
 import { config } from "../config";
 import path from "path";
+import fs from "fs";
 import { buildTimeline } from "@templates/index";
-import { getCompositions } from "@remotion/renderer";
 import * as dotenv from "dotenv";
 import { db } from "packages/db";
 import { RenderJob } from "../types";
-import { getMediaDurationInSeconds } from "@video-utils/index";
+import { getMediaDurationInSeconds, getMediaType } from "@video-utils/index";
+
 dotenv.config();
 
 // 0. Create cancel signal
 export const activeRenders = new Map<string, { cancel: () => void }>();
 
 let bundleLocation: string | null = null;
+
 const VIDEO_RENDER_CONCURRENCY = parseInt(process.env.VIDEO_RENDER_CONCURRENCY ?? "4", 10);
 const VIDEO_RENDER_BITRATE = process.env.VIDEO_RENDER_BITRATE || "1000k";
 const VIDEO_RENDER_AUDIO_CODEC = process.env.VIDEO_RENDER_AUDIO_CODEC || "aac";
 const VIDEO_RENDER_VIDEO_CODEC = process.env.VIDEO_RENDER_VIDEO_CODEC || "h264";
+const VIDEO_RENDER_TIMEOUT_MS = parseInt(process.env.VIDEO_RENDER_TIMEOUT_MS ?? "30000", 10);
+
 console.log("Video Render Concurrency set to:", VIDEO_RENDER_CONCURRENCY);
+
+const monorepoRoot = path.resolve(__dirname, "../../../../");
+const remotionEngineRoot = path.join(monorepoRoot, "packages", "remotion-engine");
+
+const resolveEntryPoint = () => {
+  const candidates = [
+    path.join(remotionEngineRoot, "src", "index.ts"),
+    path.join(remotionEngineRoot, "src", "index.tsx"),
+    path.join(remotionEngineRoot, "src", "index.js"),
+    path.join(remotionEngineRoot, "src", "index.jsx"),
+  ];
+
+  const found = candidates.find((candidate) => fs.existsSync(candidate));
+
+  if (!found) {
+    throw new Error(`Could not find Remotion entry point. Tried:\n${candidates.join("\n")}`);
+  }
+
+  return found;
+};
+
+console.log("cwd:", process.cwd());
+console.log("__dirname:", __dirname);
+console.log("monorepoRoot:", monorepoRoot);
+console.log("remotionEngineRoot:", remotionEngineRoot);
+console.log("entryPoint:", resolveEntryPoint());
+console.log(`🚀 ~ getBundle ~ path.join(remotionEngineRoot, "public":`, path.join(remotionEngineRoot, "public"));
 
 async function getBundle() {
   if (!bundleLocation) {
     bundleLocation = await bundle({
-      entryPoint: require.resolve("@remotion/index"),
+      entryPoint: resolveEntryPoint(),
       outDir: config.bundlePath,
+      rootDir: monorepoRoot,
+      publicDir: path.join(monorepoRoot, "public"),
     });
   }
+
   return bundleLocation;
 }
 
 export async function renderJob(job: RenderJob) {
+  console.log(`Trying to render video with job ID: ${job.id} and composition ID: ${job.compositionId}`);
+
   try {
     const timeline = await buildTimeline({
       fragments: job.inputProps.fragments,
@@ -46,7 +82,12 @@ export async function renderJob(job: RenderJob) {
 
     const bundleLocation = await getBundle();
 
-    let backgroundAudio: { src: string; durationInSeconds: number; volume?: number } | null = null;
+    let backgroundAudio: {
+      src: string;
+      durationInSeconds: number;
+      volume?: number;
+    } | null = null;
+
     if (job.inputProps.backgroundAudio) {
       backgroundAudio = {
         src: job.inputProps.backgroundAudio.src,
@@ -55,35 +96,55 @@ export async function renderJob(job: RenderJob) {
       };
     }
 
+    console.log("backgroundAudio:", backgroundAudio);
+
+    let background: {
+      src: string;
+      durationInSeconds: number;
+      isVideo: boolean;
+    } | null = null;
+
+    if (job.inputProps.background && job.inputProps.background.src) {
+      background = {
+        src: job.inputProps.background.src,
+        durationInSeconds: 0,
+        isVideo:
+          job.inputProps.background.isVideo === undefined
+            ? (await getMediaType(job.inputProps.background.src)) === "video"
+            : job.inputProps.background.isVideo,
+      };
+    }
+
+    if (background?.isVideo) {
+      background.durationInSeconds = await getMediaDurationInSeconds(background.src);
+    }
+
+    console.log("background:", background);
+
     const inputProps = {
       timeline: timeline.items,
       totalFrames: timeline.totalFrames,
       studentName: job.inputProps.studentName,
       className: job.inputProps.className,
-
-      backgroundAudio: backgroundAudio,
-      backgroundSrc: job.inputProps.backgroundSrc,
-
+      backgroundAudio,
+      background,
       portraitWidth: config.portraitWidth,
       portraitHeight: config.portraitHeight,
       landscapeWidth: config.landscapeWidth,
       landscapeHeight: config.landscapeHeight,
     };
 
-    const compositions = await getCompositions(bundleLocation, {
+    const composition = await selectComposition({
+      serveUrl: bundleLocation,
+      id: job.compositionId,
       inputProps,
+      timeoutInMilliseconds: VIDEO_RENDER_TIMEOUT_MS,
+      logLevel: "info",
     });
-
-    const composition = compositions.find((c) => c.id === job.compositionId);
-
-    if (!composition) {
-      throw new Error(`Composition not found: ${job.compositionId}`);
-    }
 
     const output = path.join(config.storagePath, "renders", `${job.id}.mp4`);
 
     const { cancelSignal, cancel } = makeCancelSignal();
-    // register
     activeRenders.set(job.id, { cancel });
 
     const renderRes = await renderMedia({
@@ -92,12 +153,15 @@ export async function renderJob(job: RenderJob) {
         durationInFrames: timeline.totalFrames,
       },
       serveUrl: bundleLocation,
+      timeoutInMilliseconds: VIDEO_RENDER_TIMEOUT_MS,
       concurrency: VIDEO_RENDER_CONCURRENCY,
       audioCodec: VIDEO_RENDER_AUDIO_CODEC as any,
       videoBitrate: VIDEO_RENDER_BITRATE,
       imageFormat: "jpeg",
       hardwareAcceleration: "if-possible",
       codec: VIDEO_RENDER_VIDEO_CODEC as any,
+      mediaCacheSizeInBytes: 512 * 1024 * 1024, // example: 512MB
+      disallowParallelEncoding: true,
       outputLocation: output,
       inputProps,
       cancelSignal,
@@ -109,16 +173,15 @@ export async function renderJob(job: RenderJob) {
         const [rows]: any = await db.query(`SELECT cancelled FROM renders WHERE id = ?`, [job.id]);
 
         if (rows[0]?.cancelled) {
-          cancel(); // trigger abort
+          cancel();
           return;
         }
 
         await db.query(`UPDATE renders SET progress = ? WHERE id = ?`, [progress.progress, job.id]);
       },
     });
-    console.log("🚀 ~ renderJob ~ renderRes:", renderRes);
 
-    activeRenders.delete(job.id);
+    console.log("renderRes:", renderRes);
 
     return {
       output,
@@ -127,7 +190,9 @@ export async function renderJob(job: RenderJob) {
       job,
     };
   } catch (error) {
-    console.log("🚀 ~ renderJob ~ error:", error);
+    console.error("Render failed:", error);
+    throw error;
+  } finally {
     activeRenders.delete(job.id);
   }
 }

@@ -12,7 +12,7 @@ export type TimelineItem =
     }
   | {
       type: "outro";
-      src: string;
+      src?: string | null;
       durationInFrames: number;
     };
 

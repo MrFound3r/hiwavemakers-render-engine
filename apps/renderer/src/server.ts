@@ -1,4 +1,5 @@
 // apps/renderer/src/server.ts
+import http from "http";
 import express from "express";
 import cors from "cors";
 import path from "path";
@@ -30,7 +31,12 @@ app.use("/", utilsRoutes);
 app.use("/health", healthRoutes);
 app.use("/students", studentsRoutes)
 
-app.listen(config.port, () => {
+const server = http.createServer(app);
+
+server.keepAliveTimeout = 60000;
+server.headersTimeout = 65000;
+
+server.listen(config.port, () => {
   console.log(`Renderer running on port ${config.port}`);
 });
 

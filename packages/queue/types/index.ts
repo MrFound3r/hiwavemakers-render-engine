@@ -9,13 +9,16 @@ export interface InputProps {
   studentName: string;
   className?: string;
   fragments: Array<VideoFragments>;
-  outro: string;
+  outro?: string | null;
   intro?: string;
   backgroundAudio?: {
     src: string;
     volume?: number;
-  }
-  backgroundSrc: string | null;
+  };
+  background: {
+    src: string | null;
+    isVideo?: boolean;
+  } | null;
 }
 
 export type QueueJob = {

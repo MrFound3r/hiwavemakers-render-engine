@@ -9,7 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@remotion/player": "^4.0.438",
+    "@remotion/player": "4.0.438",
     "axios": "^1.13.6",
     "next": "16.2.1",
     "react": "19.2.4",
