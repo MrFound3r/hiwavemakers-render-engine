@@ -3,12 +3,15 @@ import { Router } from "express";
 import { enqueueJobs } from "@queue/index";
 import { RenderRequestFromPropsSchema, BatchRenderFromPropsSchema } from "@templates/schemas/renderRequest.schema";
 import { db } from "packages/db";
+import { DbRows } from "packages/db/types";
 import z from "zod";
 import { v4 as uuidv4 } from "uuid";
 import { cancelRender } from "../services/render.services";
 import { getRandomBackground } from "../utils/backgrounds";
 import { QueueJob } from "@queue/types";
 import { getStaticOutroVideo } from "../utils/media";
+import { RenderInstance } from "../types";
+
 const router = Router();
 
 // POST /render — enqueue one or many jobs
@@ -60,7 +63,7 @@ router.post("/", async (req, res) => {
 
 // POST /render/cancel-all
 router.post("/cancel-all", async (_, res) => {
-  const [rows]: any = await db.query(`SELECT id FROM renders WHERE status = 'processing'`);
+  const [rows] = await db.query<DbRows<RenderInstance>>(`SELECT id FROM renders WHERE status = 'processing'`);
 
   for (const job of rows) {
     cancelRender(job.id);
@@ -68,7 +71,7 @@ router.post("/cancel-all", async (_, res) => {
 
   await db.query(`UPDATE renders SET cancelled = TRUE WHERE status = 'processing'`);
 
-  res.json({ success: true });
+  res.json({ success: true, cancelledJobs: rows.map((r) => r.id) });
 });
 
 // POST /render/:id/cancel
@@ -79,7 +82,60 @@ router.post("/:id/cancel", async (req, res) => {
 
   const cancelled = cancelRender(id);
 
-  res.json({ success: true, inProgressCancelled: cancelled });
+  res.json({ success: true, inProgressCancelled: cancelled, id });
+});
+
+// POST /render/:id/retry
+router.post("/:id/retry", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const [rows] = await db.query<DbRows<RenderInstance>>("SELECT * FROM renders WHERE id = ?", [id]);
+    const job = rows[0];
+    // Implement retry logic here
+    if (!job) {
+      return res.status(404).json({ error: "Job not found" });
+    }
+    if (job.status === "failed") {
+      await db.query(`UPDATE renders SET status = 'pending', attempts = 0, error = NULL, cancelled = 0 WHERE id = ?`, [
+        id,
+      ]);
+      const [rows] = await db.query<DbRows<RenderInstance>>("SELECT * FROM renders WHERE id = ?", [id]);
+      const result = rows[0];
+      res.status(200).json({ message: `Job ${id} has been reset to pending. It will be retried shortly.`, result });
+    }
+
+    res.status(400).json({ error: "Only failed jobs can be retried" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// POST /render/retry-all
+router.post("/retry-all", async (req, res) => {
+  try {
+    const [rows] = await db.query<DbRows<RenderInstance>>(
+      `SELECT id FROM renders 
+       WHERE status = 'failed' 
+       OR (cancelled = 1 AND status != 'done')`,
+    );
+
+    await db.query(
+      `UPDATE renders 
+       SET status = 'pending', attempts = 0, error = NULL, cancelled = 0 
+       WHERE status = 'failed' 
+       OR (cancelled = 1 AND status != 'done')`,
+    );
+
+    res.status(200).json({
+      message: `All failed and eligible cancelled jobs have been reset to pending.`,
+      retriedJobs: rows.map((r) => r.id),
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Database error" });
+  }
 });
 
 export default router;
