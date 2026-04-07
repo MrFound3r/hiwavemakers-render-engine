@@ -34,3 +34,4 @@ export async function uploadRenderToFirebase(localFilePath: string, jobId: strin
 
 	return url;
 }
+

@@ -11,6 +11,7 @@ import rendersRoutes from "./routes/renders.routes";
 import utilsRoutes from "./routes/utils.routes";
 import healthRoutes from "./routes/health.routes";
 import studentsRoutes from "./routes/students.routes";
+import firebaseRoutes from "./routes/firebase.routes";
 
 import {paths} from "packages/config/path";
 
@@ -28,6 +29,7 @@ app.use("/renders", rendersRoutes);
 app.use("/", utilsRoutes);
 app.use("/health", healthRoutes);
 app.use("/students", studentsRoutes);
+app.use("/firebase", firebaseRoutes);
 
 const server = http.createServer(app);
 
