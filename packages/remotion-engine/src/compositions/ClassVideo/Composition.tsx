@@ -11,10 +11,7 @@ import { IntroPhrases } from "../../components/IntroPhrases";
 import { FontPreloader } from "../../FontPreloader";
 import { Logo } from "../../components/Logo";
 import { OverShootTransition } from "../../components/animations/OvershootTransition";
-import { ScaleTransition } from "../../components/animations/ScaleTransition";
-import { SlideTransition } from "../../components/animations/SlideTransition";
 import { FadeTransition } from "../../components/animations/FadeTransition";
-import { EasePositionTransition } from "../../components/animations/EasePositionTransition";
 
 type TimelineItem =
   | { type: "intro"; src?: string; durationInFrames: number }
@@ -57,6 +54,19 @@ export const ClassVideo: React.FC<InputProps> = ({ timeline, studentName, classN
   });
 
   const totalDurationInFrames = timeline.reduce((sum, item) => sum + item.durationInFrames, 0);
+
+  const outroIndex = timeline.findIndex((item) => item.type === "outro" && Boolean(item.src));
+
+  const rawOutroStart =
+    outroIndex === -1
+      ? totalDurationInFrames
+      : timeline.slice(0, outroIndex).reduce((sum, item) => sum + item.durationInFrames, 0);
+
+  // Hide the logo as soon as the outro transition starts
+  const logoVisibleDurationInFrames =
+    outroIndex === -1
+      ? totalDurationInFrames
+      : Math.max(0, rawOutroStart - (outroIndex === 0 ? 0 : TRANSITION_DURATION));
 
   const muteVideo = Boolean(backgroundAudio);
 
@@ -157,10 +167,17 @@ export const ClassVideo: React.FC<InputProps> = ({ timeline, studentName, classN
         return null;
       })}
 
-      <Logo
-        wiggleEverySeconds={1}
-        wiggleAmplitudePx={20}
-      />
+      {logoVisibleDurationInFrames > 0 ? (
+        <Sequence
+          from={0}
+          durationInFrames={logoVisibleDurationInFrames}
+          layout="none">
+          <Logo
+            wiggleEverySeconds={1}
+            wiggleAmplitudePx={20}
+          />
+        </Sequence>
+      ) : null}
     </AbsoluteFill>
   );
 };
