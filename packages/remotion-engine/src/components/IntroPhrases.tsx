@@ -1,13 +1,6 @@
 // packages/remotion-engine/src/components/IntroPhrases.tsx
 import React from "react";
-import {
-  AbsoluteFill,
-  Sequence,
-  interpolate,
-  spring,
-  useCurrentFrame,
-  useVideoConfig,
-} from "remotion";
+import { AbsoluteFill, Sequence, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 
 type Props = {
   studentName: string;
@@ -19,10 +12,44 @@ type Props = {
 const sharedTextStyle: React.CSSProperties = {
   width: "100%",
   textAlign: "center",
-  lineHeight: 0.95,
+  lineHeight: 0.9,
   fontFamily: '"GillSansCustom", sans-serif',
   fontWeight: 700,
-  WebkitTextStroke: "8px #333A73",
+  WebkitTextStroke: "40px #333A73",
+  paintOrder: "stroke fill",
+  textShadow: `
+    2px 0 #333A73,
+    -2px 0 #333A73,
+    0 2px #333A73,
+    0 -2px #333A73,
+    2px 2px #333A73,
+    -2px -2px #333A73,
+    2px -2px #333A73,
+    -2px 2px #333A73,
+    6px 6px 0 rgba(51, 58, 115, 0.35)
+  `,
+};
+
+const topLineStyle: React.CSSProperties = {
+  ...sharedTextStyle,
+  color: "#FBA834",
+  fontSize: 172,
+  lineHeight: 0.9,
+};
+
+const nameLineStyle: React.CSSProperties = {
+  ...sharedTextStyle,
+  color: "#FFFFFF",
+  fontSize: 284,
+  lineHeight: 0.88,
+  letterSpacing: "-0.01em",
+};
+
+const lineStyle: React.CSSProperties = {
+  ...sharedTextStyle,
+  color: "#FFFFFF",
+  fontSize: 172,
+  lineHeight: 0.9,
 };
 
 export const IntroPhrases: React.FC<Props> = ({
@@ -51,8 +78,7 @@ export const IntroPhrases: React.FC<Props> = ({
         pointerEvents: "none",
         position: "relative",
         zIndex: 99,
-      }}
-    >
+      }}>
       <div
         style={{
           width: "100%",
@@ -60,13 +86,11 @@ export const IntroPhrases: React.FC<Props> = ({
           paddingLeft: 48,
           paddingRight: 48,
           boxSizing: "border-box",
-        }}
-      >
+        }}>
         <Sequence
           from={firstPhraseFrom}
           durationInFrames={firstPhraseDuration}
-          layout="none"
-        >
+          layout="none">
           <PhraseSlot>
             <FirstPhrase studentName={studentName} />
           </PhraseSlot>
@@ -75,8 +99,7 @@ export const IntroPhrases: React.FC<Props> = ({
         <Sequence
           from={secondPhraseFrom}
           durationInFrames={otherPhraseDuration}
-          layout="none"
-        >
+          layout="none">
           <PhraseSlot>
             <AnimatedPhrase direction="left">
               <Phrase
@@ -90,8 +113,7 @@ export const IntroPhrases: React.FC<Props> = ({
         <Sequence
           from={thirdPhraseFrom}
           durationInFrames={otherPhraseDuration}
-          layout="none"
-        >
+          layout="none">
           <PhraseSlot>
             <AnimatedPhrase direction="right">
               <Phrase
@@ -114,8 +136,7 @@ const PhraseSlot: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-      }}
-    >
+      }}>
       {children}
     </div>
   );
@@ -151,8 +172,7 @@ const AnimatedPhrase: React.FC<{
         justifyContent: "center",
         transform: `translateX(${translateX}px)`,
         opacity,
-      }}
-    >
+      }}>
       {children}
     </div>
   );
@@ -185,27 +205,20 @@ const FirstPhrase: React.FC<{ studentName: string }> = ({ studentName }) => {
         flexDirection: "column",
         alignItems: "center",
         opacity,
-      }}
-    >
+      }}>
       <div
         style={{
-          ...sharedTextStyle,
-          fontSize: 156,
-          color: "#FBA834",
+          ...topLineStyle,
           transform: `translateX(${titleX}px)`,
-        }}
-      >
+        }}>
         Great Job,
       </div>
 
       <div
         style={{
-          ...sharedTextStyle,
-          fontSize: 276,
-          color: "white",
+          ...nameLineStyle,
           transform: `translateX(${nameX}px)`,
-        }}
-      >
+        }}>
         {studentName}
       </div>
     </div>
@@ -223,25 +236,17 @@ const Phrase: React.FC<{
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-      }}
-    >
+      }}>
       <div
         style={{
-          ...sharedTextStyle,
-          fontSize: 156,
-          color: "white",
-        }}
-      >
+          ...lineStyle,
+        }}>
         {line1}
       </div>
-
       <div
         style={{
-          ...sharedTextStyle,
-          fontSize: 156,
-          color: "white",
-        }}
-      >
+          ...lineStyle,
+        }}>
         {line2}
       </div>
     </div>
