@@ -1,6 +1,8 @@
 storage/renders
 storage/classes
+storage/recordings
 node_modules
 .remotion-bundle
 apps/renderer/.bundle
 .env
+serviceAccountKey.json

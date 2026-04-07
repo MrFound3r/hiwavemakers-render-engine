@@ -16,6 +16,7 @@
     "typescript": "^6.0.2"
   },
   "dependencies": {
-    "eslint": "^10.1.0"
+    "eslint": "^10.1.0",
+    "firebase-admin": "^13.7.0"
   }
 }
