@@ -1,12 +1,25 @@
-// packages/remotion-engine/src/components/IntroPhrases.tsx
 import React from "react";
-import { AbsoluteFill, Sequence, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import {
+  AbsoluteFill,
+  Sequence,
+  interpolate,
+  spring,
+  useCurrentFrame,
+  useVideoConfig,
+  random,
+} from "remotion";
 
 type Props = {
   studentName: string;
   firstPhraseDurationInSeconds?: number;
   otherPhrasesDurationInSeconds?: number;
   gapBetweenPhrasesInSeconds?: number;
+  phraseSeed?: string | number;
+};
+
+type TwoLinePhrase = {
+  line1: string;
+  line2: string;
 };
 
 const sharedTextStyle: React.CSSProperties = {
@@ -52,11 +65,65 @@ const lineStyle: React.CSSProperties = {
   lineHeight: 0.9,
 };
 
+const INTRO_SENTENCE_OPTIONS: TwoLinePhrase[] = [
+  { line1: "Great Job,", line2: "{First Name}!" },
+  { line1: "Amazing Work", line2: "{First Name}!" },
+  { line1: "{First Name},", line2: "You Did It!" },
+  { line1: "Nice Work Today,", line2: "{First Name}!" },
+  { line1: "Way to Go,", line2: "{First Name}!" },
+  { line1: "You Crushed It,", line2: "{First Name}!" },
+  { line1: "Big Win Today,", line2: "{First Name}!" },
+  { line1: "Keep It Up,", line2: "{First Name}!" },
+  { line1: "You Rocked It,", line2: "{First Name}!" },
+  { line1: "{First Name},", line2: "Fantastic Job Today" },
+  { line1: "What a Great Job,", line2: "{First Name}" },
+  { line1: "You Did Great,", line2: "{First Name}" },
+];
+
+const SECOND_SENTENCE_OPTIONS: TwoLinePhrase[] = [
+  { line1: "You Made a Lot of", line2: "Progress Today" },
+  { line1: "You Learned So", line2: "Much Today" },
+  { line1: "You Got Better", line2: "With Every Step" },
+  { line1: "You Built Something", line2: "Cool Today" },
+  { line1: "You Built Something", line2: "Great Today" },
+  { line1: "You Grew Your", line2: "Skills Today" },
+  { line1: "You Leveled", line2: "Up Today" },
+  { line1: "You Made Real", line2: "Progress Today" },
+  { line1: "You Made This", line2: "Class Count" },
+  { line1: "You Brought Your Best", line2: "to This Class" },
+  { line1: "You Made Every", line2: "Second Count" },
+  { line1: "You Put In the", line2: "Work Today" },
+];
+
+const THIRD_SENTENCE_OPTIONS: TwoLinePhrase[] = [
+  { line1: "We Are Proud", line2: "of You" },
+  { line1: "Keep Creating", line2: "Amazing Things" },
+  { line1: "You Are Doing an", line2: "Awesome Job" },
+  { line1: "We’re Impressed by", line2: "Your Progress" },
+  { line1: "We’re Happy to", line2: "See You Grow" },
+  { line1: "Keep Building", line2: "and Believing" },
+  { line1: "Keep Showing the", line2: "World Your Talent" },
+  { line1: "Can’t Wait to See", line2: "Your Ideas Come Alive" },
+  { line1: "Can’t Wait to See You Grow", line2: "Project After Project" },
+  { line1: "Keep Going, You", line2: "Are Doing Great" },
+  { line1: "Big Things", line2: "Start Like This" },
+  { line1: "You Are Growing", line2: "More Every Class" },
+];
+
+const pickDeterministic = <T,>(items: T[], seed: string): T => {
+  const index = Math.floor(random(seed) * items.length);
+  return items[index];
+};
+
+const replaceFirstName = (value: string, studentName: string) =>
+  value.replaceAll("{First Name}", studentName);
+
 export const IntroPhrases: React.FC<Props> = ({
   studentName,
   firstPhraseDurationInSeconds = 4,
   otherPhrasesDurationInSeconds = 4,
   gapBetweenPhrasesInSeconds = 0,
+  phraseSeed,
 }) => {
   const { fps } = useVideoConfig();
 
@@ -68,6 +135,23 @@ export const IntroPhrases: React.FC<Props> = ({
   const secondPhraseFrom = firstPhraseFrom + firstPhraseDuration + gapDuration;
   const thirdPhraseFrom = secondPhraseFrom + otherPhraseDuration + gapDuration;
 
+  const baseSeed = String(phraseSeed ?? studentName ?? "intro-phrases");
+
+  const introPhrase = pickDeterministic(
+    INTRO_SENTENCE_OPTIONS,
+    `${baseSeed}-intro`
+  );
+
+  const secondPhrase = pickDeterministic(
+    SECOND_SENTENCE_OPTIONS,
+    `${baseSeed}-second`
+  );
+
+  const thirdPhrase = pickDeterministic(
+    THIRD_SENTENCE_OPTIONS,
+    `${baseSeed}-third`
+  );
+
   return (
     <AbsoluteFill
       style={{
@@ -78,7 +162,8 @@ export const IntroPhrases: React.FC<Props> = ({
         pointerEvents: "none",
         position: "relative",
         zIndex: 99,
-      }}>
+      }}
+    >
       <div
         style={{
           width: "100%",
@@ -86,25 +171,31 @@ export const IntroPhrases: React.FC<Props> = ({
           paddingLeft: 48,
           paddingRight: 48,
           boxSizing: "border-box",
-        }}>
+        }}
+      >
         <Sequence
           from={firstPhraseFrom}
           durationInFrames={firstPhraseDuration}
-          layout="none">
+          layout="none"
+        >
           <PhraseSlot>
-            <FirstPhrase studentName={studentName} />
+            <FirstPhrase
+              line1={replaceFirstName(introPhrase.line1, studentName)}
+              line2={replaceFirstName(introPhrase.line2, studentName)}
+            />
           </PhraseSlot>
         </Sequence>
 
         <Sequence
           from={secondPhraseFrom}
           durationInFrames={otherPhraseDuration}
-          layout="none">
+          layout="none"
+        >
           <PhraseSlot>
             <AnimatedPhrase direction="left">
               <Phrase
-                line1="You made a lot of"
-                line2="progress today"
+                line1={secondPhrase.line1}
+                line2={secondPhrase.line2}
               />
             </AnimatedPhrase>
           </PhraseSlot>
@@ -113,12 +204,13 @@ export const IntroPhrases: React.FC<Props> = ({
         <Sequence
           from={thirdPhraseFrom}
           durationInFrames={otherPhraseDuration}
-          layout="none">
+          layout="none"
+        >
           <PhraseSlot>
             <AnimatedPhrase direction="right">
               <Phrase
-                line1="We are proud"
-                line2="of you"
+                line1={thirdPhrase.line1}
+                line2={thirdPhrase.line2}
               />
             </AnimatedPhrase>
           </PhraseSlot>
@@ -136,7 +228,8 @@ const PhraseSlot: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-      }}>
+      }}
+    >
       {children}
     </div>
   );
@@ -172,13 +265,17 @@ const AnimatedPhrase: React.FC<{
         justifyContent: "center",
         transform: `translateX(${translateX}px)`,
         opacity,
-      }}>
+      }}
+    >
       {children}
     </div>
   );
 };
 
-const FirstPhrase: React.FC<{ studentName: string }> = ({ studentName }) => {
+const FirstPhrase: React.FC<{
+  line1: string;
+  line2: string;
+}> = ({ line1, line2 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
@@ -205,21 +302,24 @@ const FirstPhrase: React.FC<{ studentName: string }> = ({ studentName }) => {
         flexDirection: "column",
         alignItems: "center",
         opacity,
-      }}>
+      }}
+    >
       <div
         style={{
           ...topLineStyle,
           transform: `translateX(${titleX}px)`,
-        }}>
-        Great Job,
+        }}
+      >
+        {line1}
       </div>
 
       <div
         style={{
           ...nameLineStyle,
           transform: `translateX(${nameX}px)`,
-        }}>
-        {studentName}
+        }}
+      >
+        {line2}
       </div>
     </div>
   );
@@ -236,19 +336,10 @@ const Phrase: React.FC<{
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-      }}>
-      <div
-        style={{
-          ...lineStyle,
-        }}>
-        {line1}
-      </div>
-      <div
-        style={{
-          ...lineStyle,
-        }}>
-        {line2}
-      </div>
+      }}
+    >
+      <div style={lineStyle}>{line1}</div>
+      <div style={lineStyle}>{line2}</div>
     </div>
   );
 };

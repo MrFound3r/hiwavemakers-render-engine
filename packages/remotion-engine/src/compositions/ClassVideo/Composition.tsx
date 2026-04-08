@@ -100,6 +100,7 @@ export const ClassVideo: React.FC<InputProps> = ({ timeline, studentName, classN
         firstPhraseDurationInSeconds={6}
         otherPhrasesDurationInSeconds={7}
         gapBetweenPhrasesInSeconds={1}
+        phraseSeed={`${studentName}-${className ?? ""}`}
       />
 
       {sequences.map(({ item, start, index }) => {
