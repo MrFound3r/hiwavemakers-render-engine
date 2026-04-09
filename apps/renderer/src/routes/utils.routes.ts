@@ -3,10 +3,10 @@ import { Router } from "express";
 import { buildTimelineService, getVideoDurationInSecondsService } from "../services/utils.services";
 import fs from "fs";
 import multer from "multer";
-import { paths } from "packages/config/path";
 import path from "path";
 import ffmpeg from "fluent-ffmpeg";
 import ffmpegStatic from "ffmpeg-static";
+import { paths } from "@hiwave/config";
 
 // Tell fluent-ffmpeg where the actual engine is located
 if (ffmpegStatic) {

@@ -1,5 +1,5 @@
 {
-  "name": "@hiwave/queue",
+  "name": "@hiwave/config",
   "version": "0.0.0",
   "private": true,
   "main": "./dist/index.js",
@@ -9,8 +9,5 @@
   },
   "scripts": {
     "build": "tsc -b"
-  },
-  "dependencies": {
-    "zod": "^4.3.6"
   }
 }

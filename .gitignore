@@ -6,3 +6,5 @@ node_modules
 apps/renderer/.bundle
 .env
 serviceAccountKey.json
+.turbo
+dist

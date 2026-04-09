@@ -1,10 +1,10 @@
 // apps/renderer/src/worker.ts
 import pLimit from "p-limit";
-import { getNextJob, markProcessing, markCompleted, markFailed, updateJobStatus, incrementAttempts, claimNextJob } from "@queue/index";
-import { db } from "packages/db";
+import { db } from "@hiwave/db";
 import * as dotenv from "dotenv";
 import { renderJob } from "./jobs/render.jobs";
 import { uploadRenderToFirebase } from "./services/firebase.services";
+import { getNextJob, markProcessing, markCompleted, markFailed, claimNextJob, updateJobStatus, incrementAttempts } from "@hiwave/queue";
 
 dotenv.config();
 

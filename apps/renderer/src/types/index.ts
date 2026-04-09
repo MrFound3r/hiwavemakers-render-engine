@@ -1,4 +1,4 @@
-import { InputProps } from "@queue/types";
+import { InputProps } from "@hiwave/queue/types";
 
 export interface RenderJob {
   inputProps: InputProps;

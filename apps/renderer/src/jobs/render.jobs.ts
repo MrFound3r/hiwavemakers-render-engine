@@ -4,11 +4,11 @@ import { makeCancelSignal, renderMedia, selectComposition } from "@remotion/rend
 import { config } from "../config";
 import path from "path";
 import fs from "fs";
-import { buildTimeline } from "@templates/index";
 import * as dotenv from "dotenv";
-import { db } from "packages/db";
+import { db } from "@hiwave/db";
 import { RenderJob } from "../types";
-import { getMediaDurationInSeconds, getMediaType } from "@video-utils/index";
+import { buildTimeline } from "@hiwave/templates";
+import { getMediaDurationInSeconds, getMediaType } from "@hiwave/video-utils";
 
 dotenv.config();
 

@@ -1,16 +1,15 @@
 // apps/renderer/src/routes/render.routes.ts
 import { Router } from "express";
-import { enqueueJobs } from "@queue/index";
-import { RenderRequestFromPropsSchema, BatchRenderFromPropsSchema } from "@templates/schemas/renderRequest.schema";
-import { db } from "packages/db";
-import { DbRows } from "packages/db/types";
+import { db, DbRows } from "@hiwave/db";
 import z from "zod";
 import { v4 as uuidv4 } from "uuid";
 import { cancelRender } from "../services/render.services";
 import { getRandomBackground } from "../utils/backgrounds";
-import { QueueJob } from "@queue/types";
 import { getStaticOutroVideo } from "../utils/media";
 import { RenderInstance } from "../types";
+import { enqueueJobs } from "@hiwave/queue";
+import { QueueJob } from "@hiwave/queue/types";
+import { BatchRenderFromPropsSchema, RenderRequestFromPropsSchema } from "@hiwave/templates";
 
 const router = Router();
 

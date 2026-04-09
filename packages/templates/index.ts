@@ -1,3 +1,4 @@
 // packages/templates/index.ts
 export * from "./classVideo/buildTimeline";
-export * from "./classVideo/types";
+export * from "./schemas/index";
+export * from "./types/index";

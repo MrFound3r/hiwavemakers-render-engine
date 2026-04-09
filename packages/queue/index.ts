@@ -1,5 +1,5 @@
 // src/packages/queue/index.ts
-import { db } from "packages/db";
+import { db } from "@hiwave/db";
 import { QueueJob } from "./types";
 
 export async function enqueueJob(job: QueueJob) {

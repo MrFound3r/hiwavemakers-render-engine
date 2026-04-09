@@ -1,7 +1,7 @@
 // apps/renderer/src/routes/students.routes.ts
 
 import { Router } from "express";
-import { db } from "packages/db";
+import { db } from "@hiwave/db";
 
 const router = Router();
 

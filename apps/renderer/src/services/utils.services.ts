@@ -1,6 +1,6 @@
 // apps/renderer/src/services/utils.services.ts
-import { buildTimeline } from "@templates/index";
-import { getMediaDurationInSeconds } from "@video-utils/getVideoDuration";
+import { buildTimeline } from "@hiwave/templates";
+import { getMediaDurationInSeconds } from "@hiwave/video-utils";
 import { config } from "../config";
 
 export async function getVideoDurationInSecondsService(job: any) {

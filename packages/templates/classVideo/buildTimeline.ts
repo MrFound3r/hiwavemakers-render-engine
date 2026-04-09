@@ -1,6 +1,6 @@
-import { getMediaDurationInSeconds } from "@video-utils/index";
-import { Timeline, TimelineItem } from "./types";
 import dotenv from "dotenv";
+import { Timeline, TimelineItem } from "../types";
+import { getMediaDurationInSeconds } from "@hiwave/video-utils";
 
 dotenv.config();
 

@@ -1,4 +1,4 @@
-import { db } from "packages/db";
+import { db } from "@hiwave/db";
 
 export async function resolveRenderData(classId: string, studentId: string) {
   const [[student]]: any = await db.query(`SELECT * FROM students WHERE id = ?`, [studentId]);

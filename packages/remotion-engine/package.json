@@ -1,7 +1,17 @@
 {
-  "name": "remotion",
-  "main": "src/index.ts",
+  "name": "@hiwave/remotion-engine",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -b"
+  },
   "dependencies": {
+    "@hiwave/templates": "*",
     "@remotion/fonts": "4.0.438",
     "@remotion/media": "4.0.438",
     "@remotion/player": "4.0.438",
