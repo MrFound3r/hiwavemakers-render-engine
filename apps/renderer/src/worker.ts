@@ -70,11 +70,16 @@ export async function workerLoop() {
 
 				console.log(`📤 Uploading render ${job.id} to Firebase...`);
 
-				const firebaseUrl = await uploadRenderToFirebase(renderRes?.output, job.id);
+				const firebaseUrl = await uploadRenderToFirebase({
+					videoPath: renderRes.output,
+					thumbnailPath: renderRes.thumbnailOutput,
+				}, job.id);
 
-				console.log(`✅ Upload complete! Firebase URL: ${firebaseUrl}`);
+				console.log(`✅ Upload complete!`);
+				console.log(`🎬 Video URL: ${firebaseUrl.videoUrl}`);
+				console.log(`🖼️ Thumbnail URL: ${firebaseUrl.thumbnailUrl}`);
 
-				await updateJobStatus(job.id, "done", undefined, firebaseUrl);
+				await updateJobStatus(job.id, "done", undefined, "firebaseUrl");
 			} catch (err: any) {
 				console.log("🚀 ~ workerLoop ~ err:", err);
 				if (err.message?.includes("cancel")) {

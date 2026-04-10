@@ -19,6 +19,9 @@ export interface InputProps {
     src: string | null;
     isVideo?: boolean;
   } | null;
+  thumbnail?: {
+    src: string;
+  } | null;
 }
 
 export type QueueJob = {

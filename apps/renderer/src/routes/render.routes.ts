@@ -10,6 +10,7 @@ import { RenderInstance } from "../types";
 import { enqueueJobs } from "@hiwave/queue";
 import { QueueJob } from "@hiwave/queue/types";
 import { BatchRenderFromPropsSchema, RenderRequestFromPropsSchema } from "@hiwave/templates";
+import { BackgroundAsset, getRandomThumbnail } from "../utils";
 
 const router = Router();
 
@@ -20,18 +21,38 @@ router.post("/", async (req, res) => {
       ? BatchRenderFromPropsSchema.parse(req.body)
       : [RenderRequestFromPropsSchema.parse(req.body)];
 
-    let background = getRandomBackground();
-    let outroVideo = getStaticOutroVideo();
+    let background: BackgroundAsset | null;
+    let outroVideo: string | null;
+    let thumbnail: { src: string } | null;
 
     const jobs: QueueJob[] = parsed.map((item) => {
-      let outroSrc: string | null | undefined = item.inputProps.outro;
+      // OUTRO
+      let outroSrc: undefined | null | string = item.inputProps.outro;
       if (!outroSrc) {
+        if (!outroVideo) {
+          outroVideo = getStaticOutroVideo();
+        }
         outroSrc = outroVideo;
       }
-      if (item.inputProps.background?.src) {
-        background = {
-          src: item.inputProps.background.src,
-        };
+
+      // BACKGROUND
+      let backgroundSrc = item.inputProps.background?.src;
+      if (!backgroundSrc) {
+        if (!background) {
+          background = getRandomBackground();
+        }
+      } else {
+        background = { src: backgroundSrc };
+      }
+
+      // THUMBNAIL
+      let thumbnailSrc = item.inputProps.thumbnail?.src;
+      if (!thumbnailSrc) {
+        if (!thumbnail) {
+          thumbnail = getRandomThumbnail();
+        }
+      } else {
+        thumbnail = { src: thumbnailSrc };
       }
 
       return {
@@ -44,7 +65,8 @@ router.post("/", async (req, res) => {
           outro: outroSrc,
           intro: item.inputProps.intro,
           backgroundAudio: item.inputProps.backgroundAudio,
-          background: background,
+          background,
+          thumbnail,
         },
       };
     });

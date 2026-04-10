@@ -5,6 +5,11 @@ export const RenderRequestFromPropsSchema = z.object({
   inputProps: z.object({
     outro: z.string().optional(),
     intro: z.string().optional(),
+    thumbnail: z
+      .object({
+        src: z.string(),
+      })
+      .optional(),
     background: z
       .object({
         src: z.string(),

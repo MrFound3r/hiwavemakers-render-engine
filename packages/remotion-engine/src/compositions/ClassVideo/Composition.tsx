@@ -12,6 +12,7 @@ import { FontPreloader } from "../../FontPreloader";
 import { Logo } from "../../components/Logo";
 import { OverShootTransition } from "../../components/animations/OvershootTransition";
 import { FadeTransition } from "../../components/animations/FadeTransition";
+// import { Thumbnail } from "../../components/Thumbnail";
 
 type TimelineItem =
   | { type: "intro"; src?: string; durationInFrames: number }
@@ -31,6 +32,7 @@ type InputProps = {
   timeline: TimelineItem[];
   studentName: string;
   className?: string;
+  phraseSeed?: string | number;
   backgroundAudio?: {
     src: string;
     durationInSeconds: number;
@@ -41,9 +43,20 @@ type InputProps = {
     isVideo: boolean;
     durationInSeconds: number;
   } | null;
+  thumbnail?: {
+    src: string;
+  } | null;
 };
 
-export const ClassVideo: React.FC<InputProps> = ({ timeline, studentName, className, backgroundAudio, background }) => {
+export const ClassVideo: React.FC<InputProps> = ({
+  timeline,
+  studentName,
+  className,
+  phraseSeed,
+  // thumbnail,
+  backgroundAudio,
+  background,
+}) => {
   const { fps } = useVideoConfig();
   const TRANSITION_DURATION = 15;
 
@@ -95,12 +108,25 @@ export const ClassVideo: React.FC<InputProps> = ({ timeline, studentName, classN
         />
       ) : null}
 
+      {/* {thumbnail?.src && (
+        <Sequence
+          from={0}
+          durationInFrames={1}
+          layout="none">
+          <Thumbnail
+            studentName={studentName}
+            phraseSeed={phraseSeed}
+            thumbnail={thumbnail}
+          />
+        </Sequence>
+      )} */}
+
       <IntroPhrases
         studentName={studentName}
         firstPhraseDurationInSeconds={6}
         otherPhrasesDurationInSeconds={7}
         gapBetweenPhrasesInSeconds={1}
-        phraseSeed={`${studentName}-${className ?? ""}`}
+        phraseSeed={phraseSeed}
       />
 
       {sequences.map(({ item, start, index }) => {
@@ -108,7 +134,7 @@ export const ClassVideo: React.FC<InputProps> = ({ timeline, studentName, classN
         const from = isFirst ? start : start - TRANSITION_DURATION;
         const duration = item.durationInFrames + (isFirst ? 0 : TRANSITION_DURATION);
 
-        if (item.type === "intro") {
+        if (item.type === "intro" && item.src) {
           return (
             <Sequence
               key={index}

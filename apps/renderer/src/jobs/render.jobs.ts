@@ -1,6 +1,6 @@
 // apps/renderer/src/jobs/render.jobs.ts
 import { bundle } from "@remotion/bundler";
-import { makeCancelSignal, renderMedia, selectComposition } from "@remotion/renderer";
+import { makeCancelSignal, renderMedia, renderStill, selectComposition } from "@remotion/renderer";
 import { config } from "../config";
 import path from "path";
 import fs from "fs";
@@ -64,6 +64,18 @@ async function getBundle() {
 
   return bundleLocation;
 }
+
+const getThumbnailCompositionId = (compositionId: string) => {
+  if (compositionId === "class-video-v1-landscape") {
+    return "class-video-v1-thumbnail-landscape";
+  }
+
+  return "class-video-v1-thumbnail-portrait";
+};
+
+const getThumbnailOutputPath = (jobId: string) => {
+  return path.join(config.storagePath, "renders", `${jobId}-thumbnail.jpg`);
+};
 
 export async function renderJob(job: RenderJob) {
   console.log(`Trying to render video with job ID: ${job.id} and composition ID: ${job.compositionId}`);
@@ -132,7 +144,11 @@ export async function renderJob(job: RenderJob) {
       portraitHeight: config.portraitHeight,
       landscapeWidth: config.landscapeWidth,
       landscapeHeight: config.landscapeHeight,
+      thumbnail: job.inputProps.thumbnail ?? null,
+      phraseSeed: `${job.id}-${job.inputProps.studentName ?? ""}`,
     };
+
+    console.log("🚀 ~ renderJob ~ inputProps.timeline:", inputProps.timeline);
 
     const composition = await selectComposition({
       serveUrl: bundleLocation,
@@ -183,8 +199,33 @@ export async function renderJob(job: RenderJob) {
 
     console.log("renderRes:", renderRes);
 
+    let thumbnailOutput: string | null = null;
+
+    if (job.inputProps.thumbnail?.src) {
+      const thumbnailCompositionId = getThumbnailCompositionId(job.compositionId);
+
+      const thumbnailComposition = await selectComposition({
+        serveUrl: bundleLocation,
+        id: thumbnailCompositionId,
+        inputProps,
+        timeoutInMilliseconds: VIDEO_RENDER_TIMEOUT_MS,
+        logLevel: "info",
+      });
+
+      thumbnailOutput = getThumbnailOutputPath(job.id);
+
+      await renderStill({
+        composition: thumbnailComposition,
+        serveUrl: bundleLocation,
+        output: thumbnailOutput,
+        inputProps,
+        imageFormat: "jpeg",
+      });
+    }
+
     return {
       output,
+      thumbnailOutput,
       inputProps,
       compositionId: composition.id,
       job,

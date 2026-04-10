@@ -8,7 +8,7 @@ import { buildUrl, getFiles } from ".";
 
 const IMAGE_DIR = path.resolve(process.cwd(), "../../storage/assets/images/backgrounds/video-frames");
 
-type BackgroundAsset = {
+export type BackgroundAsset = {
   src: string;
   isVideo?: boolean;
 };
