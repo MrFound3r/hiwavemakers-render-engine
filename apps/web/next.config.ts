@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: require("path").join(__dirname, "../.."),
   },
+  transpilePackages: ["@hiwave/remotion-engine", "@hiwave/templates"],
 };
 
 export default nextConfig;

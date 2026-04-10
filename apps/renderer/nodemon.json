@@ -1,0 +1,13 @@
+{
+  "watch": [
+    "src",
+    "../../packages/config/dist",
+    "../../packages/db/dist",
+    "../../packages/queue/dist",
+    "../../packages/templates/dist",
+    "../../packages/video-utils/dist",
+    "../../packages/remotion-engine/src"
+  ],
+  "ext": "ts,tsx,js,json",
+  "exec": "ts-node -r tsconfig-paths/register src/server.ts"
+}

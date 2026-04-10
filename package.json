@@ -7,9 +7,11 @@
   ],
   "packageManager": "npm@10.9.2",
   "scripts": {
+    "watch:ts": "tsc -b tsconfig.packages.json --watch --preserveWatchOutput",
     "dev:web": "npm run dev -w apps/web",
     "dev:renderer": "npm run dev -w apps/renderer",
-    "dev": "concurrently -n web,renderer -c blue,green \"npm run dev:web\" \"npm run dev:renderer\"",
+    "dev": "npm run build:ts:dev && concurrently -n ts,renderer,web -c yellow,green,blue \"npm run watch:ts\" \"npm run dev:renderer\" \"npm run dev:web\"",
+    "build:ts:dev": "tsc -b tsconfig.packages.json",
     "build:ts": "tsc -b",
     "build:web": "npm run build -w apps/web",
     "build:prod": "npm run build:ts && npm run build:web",
