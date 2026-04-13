@@ -27,12 +27,12 @@ export async function enqueueJobs(jobs: QueueJob[]) {
   }));
 }
 
-export async function updateJobStatus(id: string, status: string, error?: string, output?: string) {
+export async function updateJobStatus(id: string, status: string, error?: string, videoUrl?: string, thumbnailUrl?: string | null) {
   await db.query(
     `UPDATE renders
-     SET status = ?, error = ?, output_path = ?
+     SET status = ?, error = ?, output_path = ?, thumbnail_path = ?
      WHERE id = ?`,
-    [status, error || null, output || null, id],
+    [status, error || null, videoUrl || null, thumbnailUrl || null, id],
   );
 }
 

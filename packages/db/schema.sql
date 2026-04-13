@@ -8,6 +8,7 @@ CREATE TABLE renders (
   status VARCHAR(20),
   input JSON,
   output_path TEXT,
+  thumbnail_path TEXT,
   error TEXT,
   attempts INT DEFAULT 0,
   max_attempts INT DEFAULT 3,

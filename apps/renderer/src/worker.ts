@@ -79,7 +79,7 @@ export async function workerLoop() {
 				console.log(`🎬 Video URL: ${firebaseUrl.videoUrl}`);
 				console.log(`🖼️ Thumbnail URL: ${firebaseUrl.thumbnailUrl}`);
 
-				await updateJobStatus(job.id, "done", undefined, "firebaseUrl");
+				await updateJobStatus(job.id, "done", undefined, firebaseUrl.videoUrl, firebaseUrl.thumbnailUrl);
 			} catch (err: any) {
 				console.log("🚀 ~ workerLoop ~ err:", err);
 				if (err.message?.includes("cancel")) {
