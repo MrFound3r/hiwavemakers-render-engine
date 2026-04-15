@@ -4,8 +4,8 @@ import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import type { Student } from "@/types/dashboard";
 import { enqueueRenderForStudent, fetchStudentsByRoom } from "@/lib/dashboard/api";
 import { canRetryRender, isRenderDone, isRenderProcessing } from "@/lib/dashboard/status";
-import { sendBulkStudentVideoEmails } from "@/lib/dashboard/api";
 import { getEmailableStudents } from "@/lib/dashboard/email";
+import { sendBulkStudentVideoEmails } from "@/lib/dashboard/email-templates";
 
 interface UseStudentsOptions {
   pollIntervalMs?: number;
@@ -18,8 +18,6 @@ export function useStudents(selectedRoom: string | null, options: UseStudentsOpt
   const [isRefreshingStudents, setIsRefreshingStudents] = useState(false);
 
   const [selectedStudentIds, setSelectedStudentIds] = useState<Set<string>>(new Set());
-
-  const [isSendingBulkEmail, setIsSendingBulkEmail] = useState(false);
 
   const { pollIntervalMs = 10000, enableAutoPolling = true } = options;
 
@@ -188,80 +186,10 @@ export function useStudents(selectedRoom: string | null, options: UseStudentsOpt
     };
   }, [enableAutoPolling, selectedRoom, hasActiveRenders, pollIntervalMs, loadStudents]);
 
-  const emailableSelectedStudents = useMemo(() => {
-    return getEmailableStudents(selectedStudents);
-  }, [selectedStudents]);
-
-  const emailableWholeClassStudents = useMemo(() => {
-    return getEmailableStudents(students);
-  }, [students]);
-
-  const emailSelectedStudents = useCallback(async () => {
-    const validStudents = getEmailableStudents(
-      students.filter((student) => selectedStudentIds.has(student.student_uuid)),
-    );
-
-    const skippedCount = selectedStudentIds.size - validStudents.length;
-
-    if (validStudents.length === 0) {
-      alert("No selected students are eligible for email.");
-      return;
-    }
-
-    setIsSendingBulkEmail(true);
-
-    try {
-      const res = await sendBulkStudentVideoEmails(validStudents);
-      console.log("🚀 ~ useStudents ~ res:", res);
-
-      alert(
-        skippedCount > 0
-          ? `Queued ${validStudents.length} emails. Skipped ${skippedCount} student(s) without completed renders or email addresses.`
-          : `Queued ${validStudents.length} emails successfully.`,
-      );
-    } catch (error) {
-      console.error("Bulk email error:", error);
-      alert("Failed to queue bulk emails.");
-      throw error;
-    } finally {
-      setIsSendingBulkEmail(false);
-    }
-  }, [students, selectedStudentIds]);
-
-  const emailWholeClass = useCallback(async () => {
-    const validStudents = getEmailableStudents(students);
-    const skippedCount = students.length - validStudents.length;
-
-    if (validStudents.length === 0) {
-      alert("No students in this class are eligible for email.");
-      return;
-    }
-
-    setIsSendingBulkEmail(true);
-
-    try {
-      const res = await sendBulkStudentVideoEmails(validStudents);
-
-      alert(
-        skippedCount > 0
-          ? `Queued ${validStudents.length} class email(s). Skipped ${skippedCount} student(s) without completed renders or email addresses.`
-          : `Queued ${validStudents.length} class email(s) successfully.`,
-      );
-    } catch (error) {
-      console.error("Whole class email error:", error);
-      alert("Failed to queue class emails.");
-      throw error;
-    } finally {
-      setIsSendingBulkEmail(false);
-    }
-  }, [students]);
-
   return {
     students,
-    selectedStudents,
     selectedStudentIds,
     allSelected,
-    someSelected,
     isLoadingStudents,
     isRefreshingStudents,
     refreshStudents,
@@ -273,10 +201,5 @@ export function useStudents(selectedRoom: string | null, options: UseStudentsOpt
     renderWholeClass,
     hasActiveRenders,
     pollIntervalMs,
-    isSendingBulkEmail,
-    emailableSelectedStudents,
-    emailableWholeClassStudents,
-    emailSelectedStudents,
-    emailWholeClass,
   };
 }

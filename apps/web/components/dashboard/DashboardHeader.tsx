@@ -1,4 +1,3 @@
-// apps/web/components/dashboard/DashboardHeader.tsx
 "use client";
 
 import { Mail, RefreshCw, Video } from "lucide-react";
@@ -13,8 +12,6 @@ interface DashboardHeaderProps {
   onRefresh: () => void;
   onRenderWholeClass: () => void;
   onEmailWholeClass: () => void;
-  emailableWholeClassCount?: number;
-  isSendingBulkEmail?: boolean;
   hasActiveRenders?: boolean;
   pollIntervalMs?: number;
 }
@@ -26,8 +23,6 @@ export function DashboardHeader({
   onRefresh,
   onRenderWholeClass,
   onEmailWholeClass,
-  emailableWholeClassCount = 0,
-  isSendingBulkEmail = false,
   hasActiveRenders = false,
   pollIntervalMs = POLL_INTERVAL_MS,
 }: DashboardHeaderProps) {
@@ -35,8 +30,9 @@ export function DashboardHeader({
     <div className="flex flex-col gap-4 border-b px-6 py-5 md:flex-row md:items-center md:justify-between">
       <div>
         <h2 className="text-xl font-semibold">{selectedRoom ? "Students in Class" : "Class Dashboard"}</h2>
+
         {selectedRoom ? (
-          <p className="mt-1 text-sm text-muted-foreground font-mono">{selectedRoom}</p>
+          <p className="mt-1 font-mono text-sm text-muted-foreground">{selectedRoom}</p>
         ) : (
           <p className="mt-1 text-sm text-muted-foreground">Select a class to manage renders and delivery.</p>
         )}
@@ -67,9 +63,9 @@ export function DashboardHeader({
         <Button
           variant="secondary"
           onClick={onEmailWholeClass}
-          disabled={!selectedRoom || emailableWholeClassCount === 0 || isSendingBulkEmail}>
+          disabled={!selectedRoom || students.length === 0}>
           <Mail className="mr-2 h-4 w-4" />
-          {isSendingBulkEmail ? "Sending..." : "Email Whole Class"}
+          Email Whole Class
         </Button>
       </div>
     </div>

@@ -6,6 +6,7 @@ import { BulkActionsBar } from "@/components/dashboard/BulkActionsBar";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { RoomsSidebar } from "@/components/dashboard/RoomsSidebar";
 import { SendEmailDialog } from "@/components/dashboard/SendEmailDialog";
+import { BulkEmailDialog } from "@/components/dashboard/BulkEmailDialog";
 import { StudentsTable } from "@/components/dashboard/StudentsTable";
 import { useRooms } from "@/hooks/useRooms";
 import { useStudents } from "@/hooks/useStudents";
@@ -30,11 +31,6 @@ export default function DashboardPage() {
     renderWholeClass,
     hasActiveRenders,
     pollIntervalMs,
-    isSendingBulkEmail,
-    emailableSelectedStudents,
-    emailableWholeClassStudents,
-    emailSelectedStudents,
-    emailWholeClass,
   } = useStudents(selectedRoom, {
     enableAutoPolling: true,
     pollIntervalMs: POLL_INTERVAL_MS,
@@ -43,7 +39,16 @@ export default function DashboardPage() {
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [emailStudent, setEmailStudent] = useState<Student | null>(null);
 
-  const selectedCount = selectedStudentIds.size;
+  const [bulkEmailDialogOpen, setBulkEmailDialogOpen] = useState(false);
+  const [wholeClassEmailDialogOpen, setWholeClassEmailDialogOpen] = useState(false);
+
+  const selectedStudents = useMemo(
+    () =>
+      students.filter((student) =>
+        selectedStudentIds.has(student.student_uuid)
+      ),
+    [students, selectedStudentIds]
+  );
 
   const emptyMessage = useMemo(() => {
     if (!selectedRoom) return "Select a class from the sidebar to view students.";
@@ -54,6 +59,24 @@ export default function DashboardPage() {
   const openEmailDialog = (student: Student) => {
     setEmailStudent(student);
     setEmailDialogOpen(true);
+  };
+
+  const openBulkEmailDialog = () => {
+    if (selectedStudents.length === 0) {
+      alert("Select at least one student.");
+      return;
+    }
+
+    setBulkEmailDialogOpen(true);
+  };
+
+  const openWholeClassEmailDialog = () => {
+    if (students.length === 0) {
+      alert("There are no students in this class.");
+      return;
+    }
+
+    setWholeClassEmailDialogOpen(true);
   };
 
   return (
@@ -72,9 +95,7 @@ export default function DashboardPage() {
           isRefreshing={isRefreshingStudents}
           onRefresh={refreshStudents}
           onRenderWholeClass={renderWholeClass}
-          onEmailWholeClass={emailWholeClass}
-          emailableWholeClassCount={emailableWholeClassStudents.length}
-          isSendingBulkEmail={isSendingBulkEmail}
+          onEmailWholeClass={openWholeClassEmailDialog}
           hasActiveRenders={hasActiveRenders}
           pollIntervalMs={pollIntervalMs}
         />
@@ -88,11 +109,9 @@ export default function DashboardPage() {
             <div className="space-y-4">
               <BulkActionsBar
                 selectedCount={selectedStudentIds.size}
-                emailableSelectedCount={emailableSelectedStudents.length}
-                isSendingBulkEmail={isSendingBulkEmail}
                 onClearSelection={() => toggleSelectAll(false)}
                 onRenderSelected={renderSelectedStudents}
-                onEmailSelected={emailSelectedStudents}
+                onEmailSelected={openBulkEmailDialog}
               />
 
               <StudentsTable
@@ -117,6 +136,22 @@ export default function DashboardPage() {
           setEmailDialogOpen(open);
           if (!open) setEmailStudent(null);
         }}
+        onSent={refreshStudents}
+      />
+
+      <BulkEmailDialog
+        open={bulkEmailDialogOpen}
+        students={selectedStudents}
+        onOpenChange={setBulkEmailDialogOpen}
+        onSent={refreshStudents}
+      />
+
+      <BulkEmailDialog
+        open={wholeClassEmailDialogOpen}
+        students={students}
+        wholeClass
+        onOpenChange={setWholeClassEmailDialogOpen}
+        onSent={refreshStudents}
       />
     </div>
   );

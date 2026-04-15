@@ -31,10 +31,29 @@ CREATE TABLE students (
     render_id VARCHAR(50) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    current_template_id VARCHAR(100),
+    current_template_request_id VARCHAR(60),
+    current_template_request_year VARCHAR(4),
+    current_template_path TEXT,
     INDEX idx_room (room_uuid),
     INDEX idx_student (student_uuid),
     UNIQUE KEY unique_room_student (room_uuid, student_uuid),
     CONSTRAINT fk_student_render 
     FOREIGN KEY (render_id) REFERENCES renders(id) 
     ON DELETE SET NULL
+);
+
+-- Create a history table for student template requests
+CREATE TABLE student_template_requests (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  room_uuid VARCHAR(100) NOT NULL,
+  student_uuid VARCHAR(100) NOT NULL,
+  template_id VARCHAR(100) NOT NULL,
+  template_request_id VARCHAR(50) NOT NULL,
+  template_request_year VARCHAR(4) NOT NULL,
+  template_path TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+  INDEX idx_student_template_history (student_uuid, template_id, created_at),
+  INDEX idx_template_request_id (template_request_id)
 );

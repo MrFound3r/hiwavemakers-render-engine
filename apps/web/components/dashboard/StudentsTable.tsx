@@ -127,6 +127,19 @@ export function StudentsTable({
                       </Button>
                     ) : null}
 
+                    {student.current_template_path ? (
+                      <Button
+                      variant="outline"
+                        size="sm">
+                        <a
+                          href={student.current_template_path}
+                          target="_blank"
+                          rel="noopener noreferrer">
+                          View Template
+                        </a>
+                      </Button>
+                    ) : null}
+
                     {isProcessing ? (
                       <Button
                         size="sm"

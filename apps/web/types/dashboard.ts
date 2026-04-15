@@ -10,6 +10,11 @@ export interface Student {
   created_at: string;
 
   render_id: string | null;
+  current_template_id: string | null;
+  current_template_request_id: string | null;
+  current_template_request_year: string | null;
+  current_template_path: string | null;
+
   render_status: string | null;
   render_progress: number | null;
   render_url: string | null;

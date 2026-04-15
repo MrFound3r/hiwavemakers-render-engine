@@ -6,7 +6,7 @@ import { buildRenderPayload } from "./render";
 
 interface SendTemplateRecipientPayload {
   recipientId: string;
-  videoUrl: string;
+  videoUrl?: string; // or not  use ?
   template_thumbnail?: string;
   recipientData: {
     fullName: string;
@@ -14,12 +14,21 @@ interface SendTemplateRecipientPayload {
   };
 }
 
-interface SendTemplatePayload {
-  currentUserId: string;
-  templateId: string;
-  webServiceDomain: string;
-  templateData: Record<string, unknown>;
-  recipients: SendTemplateRecipientPayload[];
+export interface TemplateOption {
+  id: string;
+  label: string;
+  previewUrl: string;
+}
+
+interface LatestTemplateHistory {
+  id: number;
+  room_uuid: string;
+  student_uuid: string;
+  template_id: string;
+  template_request_id: string;
+  template_request_year: string;
+  template_path: string;
+  created_at: string;
 }
 
 export async function fetchRooms(): Promise<Room[]> {
@@ -46,80 +55,45 @@ export async function enqueueRenderForStudent(student: Student): Promise<string>
   return renderId;
 }
 
-const DEFAULT_TEMPLATE_THUMBNAIL = "https://thisvideosiforyou.com/images/static/thumbnails/hiwave-makers-thumbnail.jpg";
+export async function updateStudentCurrentTemplate(params: {
+  roomUuid: string;
+  studentUuid: string;
+  templateId: string;
+  templateRequestId: string;
+  templateRequestYear: string;
+  templatePath: string;
+}) {
+  const { roomUuid, studentUuid, ...body } = params;
 
-function resolveTemplateThumbnail(student: Student) {
-  return student.render_thumbnail ?? DEFAULT_TEMPLATE_THUMBNAIL;
+  return axios.patch(`${API_BASE_URL}/students/${roomUuid}/${studentUuid}/current-template`, body);
 }
 
-function buildEmailTemplateData(overrides?: Partial<ReturnType<typeof buildBaseEmailTemplateData>>) {
-  return {
-    ...buildBaseEmailTemplateData(),
-    ...overrides,
-  };
+export async function insertStudentTemplateHistory(params: {
+  roomUuid: string;
+  studentUuid: string;
+  templateId: string;
+  templateRequestId: string;
+  templateRequestYear: string;
+  templatePath: string;
+}) {
+  const { roomUuid, studentUuid, ...body } = params;
+
+  return axios.post(`${API_BASE_URL}/students/${roomUuid}/${studentUuid}/template-history`, body);
 }
 
-function buildBaseEmailTemplateData() {
-  return {
-    template_style: "template_style_hiwave_makers_1",
-    template_logo: "https://thisvideosiforyou.com/images/static/hiwavemakers-horiz.png",
-    template_thumbnail: DEFAULT_TEMPLATE_THUMBNAIL,
-    template_favicon: "https://thisvideosiforyou.com/images/static/hiwave-favicon.png",
-    template_headline: "We're So Proud of You, {{firstName}}",
-    template_message:
-      "{{firstName}}, watching you work through ideas, try again when something didn't work, and light up when it finally did has been amazing. Every project you built shows your creativity, patience, and how much you've grown. This video is a small glimpse of your effort, your curiosity, and the confidence you gained along the way—and we couldn't be more proud of you.",
-    template_sub_message: "",
-    call_to_action: "no",
-    call_to_action_title: "",
-    call_to_action_redirect_link: "",
-  };
-}
+export async function fetchLatestStudentTemplateHistory(params: {
+  roomUuid: string;
+  studentUuid: string;
+  templateId: string;
+}) {
+  const { roomUuid, studentUuid, templateId } = params;
 
-function buildEmailRecipient(params: { student: Student; email: string }) {
-  const { student, email } = params;
-
-  return {
-    recipientId: student.student_uuid,
-    videoUrl: student.render_url!,
-    thumbnailUrl: resolveTemplateThumbnail(student),
-    recipientData: {
-      fullName: student.name,
-      email,
+  const response = await axios.get<LatestTemplateHistory | null>(
+    `${API_BASE_URL}/students/${roomUuid}/${studentUuid}/template-history/latest`,
+    {
+      params: { templateId },
     },
-  };
-}
-
-export async function sendStudentVideoEmail(params: { student: Student; email: string }) {
-  const { student, email } = params;
-
-  const payload: SendTemplatePayload = {
-    currentUserId: "hiwave_makers",
-    templateId: "template_style_hiwave_makers_1",
-    webServiceDomain: "https://thisvideosiforyou.com",
-    templateData: buildEmailTemplateData({
-      template_thumbnail: resolveTemplateThumbnail(student),
-    }),
-    recipients: [buildEmailRecipient({ student, email })],
-  };
-
-  return axios.post(`${API_BASE_URL}/firebase/send-template`, payload);
-}
-
-export async function sendBulkStudentVideoEmails(students: Student[]) {
-  const recipients = students.map((student) =>
-    buildEmailRecipient({
-      student,
-      email: student.email!,
-    }),
   );
 
-  const payload: SendTemplatePayload = {
-    currentUserId: "hiwave_makers",
-    templateId: "template_style_hiwave_makers_1",
-    webServiceDomain: "https://thisvideosiforyou.com",
-    templateData: buildEmailTemplateData(),
-    recipients,
-  };
-
-  return axios.post(`${API_BASE_URL}/firebase/send-template`, payload);
+  return response.data;
 }

@@ -1,48 +1,82 @@
-// apps/web/components/dashboard/SendEmailDialog.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Student } from "@/types/dashboard";
-import { sendStudentVideoEmail } from "@/lib/dashboard/api";
+import { sendStudentVideoEmail } from "@/lib/dashboard/email-templates";
+import { getSingleEmailActionLabel } from "@/lib/dashboard/email-ui";
+import { TemplateSelector } from "./TemplateSelector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { TemplatePreviewPanel } from "./TemplatePreviewPanel";
+
+const DEFAULT_TEMPLATE_ID = "template_style_hiwave_makers_1";
 
 interface SendEmailDialogProps {
   open: boolean;
   student: Student | null;
   onOpenChange: (open: boolean) => void;
+  onSent?: () => void;
 }
 
-export function SendEmailDialog({ open, student, onOpenChange }: SendEmailDialogProps) {
+export function SendEmailDialog({ open, student, onOpenChange, onSent }: SendEmailDialogProps) {
   const [email, setEmail] = useState("");
-  const [isSending, setIsSending] = useState(false);
+  const [templateId, setTemplateId] = useState(DEFAULT_TEMPLATE_ID);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    setEmail(student?.email ?? "");
-  }, [student]);
+    if (!open || !student) return;
+
+    setEmail(student.email ?? "");
+    setTemplateId(student.current_template_id ?? DEFAULT_TEMPLATE_ID);
+  }, [open, student]);
+
+  const actionLabel = useMemo(() => {
+    if (!student) return "Send Email";
+    return getSingleEmailActionLabel({ student, templateId });
+  }, [student, templateId]);
 
   const handleSend = async () => {
     if (!student) return;
 
-    setIsSending(true);
+    if (!email.trim()) {
+      toast.error("Please provide an email address.");
+      return;
+    }
+
+    if (!student.render_url || student.render_status !== "done") {
+      toast.error("This student does not have a completed render yet.");
+      return;
+    }
 
     try {
-      await sendStudentVideoEmail({ student, email });
-      alert(`Email successfully queued for ${student.name}.`);
+      setIsSubmitting(true);
+
+      const response = await sendStudentVideoEmail({
+        student,
+        email: email.trim(),
+        templateId,
+      });
+
+      const mode = response.data?.mode === "reuse" ? "resent" : "sent";
+
+      toast.success(`Template email ${mode} for ${student.name}.`);
+
+      await onSent?.();
       onOpenChange(false);
     } catch (error) {
-      console.error("Error sending email:", error);
-      alert("Failed to send email. Check console for details.");
+      console.error(error);
+      toast.error("Failed to send the template email.");
     } finally {
-      setIsSending(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -50,40 +84,44 @@ export function SendEmailDialog({ open, student, onOpenChange }: SendEmailDialog
     <Dialog
       open={open}
       onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Send video to student</DialogTitle>
+          <DialogTitle>{actionLabel}</DialogTitle>
           <DialogDescription>
-            {student ? `Send the finalized video to ${student.name}.` : "Send finalized video."}
+            {student ? `Send a template email for ${student.name}.` : "Send a template email."}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-2">
-          <label
-            htmlFor="student-email"
-            className="text-sm font-medium">
-            Email Address
-          </label>
-          <Input
-            id="student-email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="student@example.com"
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Recipient Email</label>
+            <Input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="student@example.com"
+              type="email"
+            />
+          </div>
+
+          <TemplateSelector
+            value={templateId}
+            onChange={setTemplateId}
           />
+
+          <TemplatePreviewPanel templateId={templateId} />
         </div>
 
         <DialogFooter>
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            disabled={isSending}>
+            disabled={isSubmitting}>
             Cancel
           </Button>
           <Button
             onClick={handleSend}
-            disabled={isSending || !email}>
-            {isSending ? "Sending..." : "Send Email"}
+            disabled={isSubmitting}>
+            {isSubmitting ? "Sending..." : actionLabel}
           </Button>
         </DialogFooter>
       </DialogContent>
