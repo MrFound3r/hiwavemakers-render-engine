@@ -10,7 +10,7 @@ import { RenderInstance } from "../types";
 import { enqueueJobs } from "@hiwave/queue";
 import { QueueJob } from "@hiwave/queue/types";
 import { BatchRenderFromPropsSchema, RenderRequestFromPropsSchema } from "@hiwave/templates";
-import { BackgroundAsset, getRandomThumbnail } from "../utils";
+import { BackgroundAsset, getRandomBackgroundTrack, getRandomThumbnail } from "../utils";
 
 const router = Router();
 
@@ -24,6 +24,7 @@ router.post("/", async (req, res) => {
     let background: BackgroundAsset | null;
     let outroVideo: string | null;
     let thumbnail: { src: string } | null;
+    let backgroundAudio: { src: string } | null;
 
     const jobs: QueueJob[] = parsed.map((item) => {
       // OUTRO
@@ -55,6 +56,16 @@ router.post("/", async (req, res) => {
         thumbnail = { src: thumbnailSrc };
       }
 
+      // BACKGROUND TRACK
+      let backgroundAudioSrc = item.inputProps.backgroundAudio?.src;
+      if (!backgroundAudioSrc) {
+        if (!backgroundAudio) {
+          backgroundAudio = getRandomBackgroundTrack();
+        }
+      } else {
+        backgroundAudio = { src: backgroundAudioSrc };
+      }
+
       return {
         id: uuidv4(),
         compositionId: item.compositionId,
@@ -64,7 +75,7 @@ router.post("/", async (req, res) => {
           fragments: item.inputProps.fragments,
           outro: outroSrc,
           intro: item.inputProps.intro,
-          backgroundAudio: item.inputProps.backgroundAudio,
+          backgroundAudio: backgroundAudio || item.inputProps.backgroundAudio,
           background,
           thumbnail,
         },

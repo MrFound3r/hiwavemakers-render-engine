@@ -36,3 +36,13 @@ export function getRandomThumbnail() {
   const index = Math.floor(Math.random() * pickedThumbnails.length);
   return pickedThumbnails[index];
 }
+
+export function getRandomBackgroundTrack() {
+  const AUDIO_DIR = path.resolve(process.cwd(), "../../storage/assets/sounds");
+  const audioFiles = getFiles(AUDIO_DIR, /\.(mp3|wav|ogg)$/i);
+
+  if (audioFiles.length === 0) return null;
+
+  const index = Math.floor(Math.random() * audioFiles.length);
+  return { src: buildUrl(`/static/assets/sounds/${audioFiles[index]}`) };
+}
