@@ -93,29 +93,42 @@ router.patch("/:roomUuid/:studentUuid/render-id", async (req, res) => {
 // GET /students/room/:roomUuid — Get all students & their render progress using a JOIN
 router.get("/room/:roomUuid", async (req, res) => {
 	try {
-		// Uses a LEFT JOIN to fetch the student data and their active render job (if one exists)
 		const [rows]: any = await db.query(
-			`SELECT 
-         s.id,
-         s.room_uuid, 
-         s.student_uuid, 
-         s.name, 
-         s.email, 
-         s.videos, 
-         s.created_at,
-         r.status AS render_status,
-         r.progress AS render_progress,
-         r.output_path AS render_url
-       FROM students s
-       LEFT JOIN renders r ON s.render_id = r.id
-       WHERE s.room_uuid = ? 
-       ORDER BY s.created_at ASC`,
-			[req.params.roomUuid],
+			`
+      SELECT 
+        s.id,
+        s.room_uuid,
+        s.student_uuid,
+        s.name,
+        s.email,
+        s.videos,
+        s.created_at,
+        s.render_id,
+
+        r.status AS render_status,
+        r.progress AS render_progress,
+        r.output_path AS render_url,
+		r.thumbnail_path AS render_thumbnail,
+        r.error AS render_error,
+        r.attempts AS render_attempts,
+        r.max_attempts AS render_max_attempts,
+        r.cancelled AS render_cancelled
+      FROM students s
+      LEFT JOIN renders r ON s.render_id = r.id
+      WHERE s.room_uuid = ?
+      ORDER BY s.created_at ASC
+      `,
+			[req.params.roomUuid]
 		);
 
-		res.json(rows);
+		const parsedRows = rows.map((row: any) => ({
+			...row,
+			videos: typeof row.videos === "string" ? JSON.parse(row.videos) : row.videos,
+		}));
+
+		res.json(parsedRows);
 	} catch (error) {
-		console.error("Error fetching room data:", error);
+		console.error(error);
 		res.status(500).json({ error: "Internal server error" });
 	}
 });
