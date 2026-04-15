@@ -1,23 +1,36 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Student } from "@/types/dashboard";
-import { enqueueRenderForStudent, fetchStudentsByRoom } from "@/lib/dashboard/api";
-import { canRetryRender, isRenderDone, isRenderProcessing } from "@/lib/dashboard/status";
-import { getEmailableStudents } from "@/lib/dashboard/email";
-import { sendBulkStudentVideoEmails } from "@/lib/dashboard/email-templates";
+import {
+  enqueueRenderForStudent,
+  enqueueRenderForStudents,
+  fetchStudentsByRoom,
+} from "@/lib/dashboard/api";
+import {
+  canRetryRender,
+  isRenderDone,
+  isRenderProcessing,
+} from "@/lib/dashboard/status";
 
 interface UseStudentsOptions {
   pollIntervalMs?: number;
   enableAutoPolling?: boolean;
 }
 
-export function useStudents(selectedRoom: string | null, options: UseStudentsOptions = {}) {
+export type BulkRenderMode = "missing-only" | "rerender-all";
+
+export function useStudents(
+  selectedRoom: string | null,
+  options: UseStudentsOptions = {},
+) {
   const [students, setStudents] = useState<Student[]>([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
   const [isRefreshingStudents, setIsRefreshingStudents] = useState(false);
 
-  const [selectedStudentIds, setSelectedStudentIds] = useState<Set<string>>(new Set());
+  const [selectedStudentIds, setSelectedStudentIds] = useState<Set<string>>(
+    new Set(),
+  );
 
   const { pollIntervalMs = 10000, enableAutoPolling = true } = options;
 
@@ -65,19 +78,22 @@ export function useStudents(selectedRoom: string | null, options: UseStudentsOpt
     await loadStudents({ refresh: true });
   }, [loadStudents]);
 
-  const toggleStudentSelection = useCallback((studentUuid: string, checked: boolean) => {
-    setSelectedStudentIds((prev) => {
-      const next = new Set(prev);
+  const toggleStudentSelection = useCallback(
+    (studentUuid: string, checked: boolean) => {
+      setSelectedStudentIds((prev) => {
+        const next = new Set(prev);
 
-      if (checked) {
-        next.add(studentUuid);
-      } else {
-        next.delete(studentUuid);
-      }
+        if (checked) {
+          next.add(studentUuid);
+        } else {
+          next.delete(studentUuid);
+        }
 
-      return next;
-    });
-  }, []);
+        return next;
+      });
+    },
+    [],
+  );
 
   const toggleSelectAll = useCallback(
     (checked: boolean) => {
@@ -90,11 +106,58 @@ export function useStudents(selectedRoom: string | null, options: UseStudentsOpt
     [students],
   );
 
-  const markStudentStatus = useCallback((studentUuid: string, partial: Partial<Student>) => {
-    setStudents((prev) =>
-      prev.map((student) => (student.student_uuid === studentUuid ? { ...student, ...partial } : student)),
-    );
-  }, []);
+  const markStudentStatus = useCallback(
+    (studentUuid: string, partial: Partial<Student>) => {
+      setStudents((prev) =>
+        prev.map((student) =>
+          student.student_uuid === studentUuid
+            ? { ...student, ...partial }
+            : student,
+        ),
+      );
+    },
+    [],
+  );
+
+  const markStudentsStatus = useCallback(
+    (studentUuids: string[], partial: Partial<Student>) => {
+      const targetIds = new Set(studentUuids);
+
+      setStudents((prev) =>
+        prev.map((student) =>
+          targetIds.has(student.student_uuid)
+            ? { ...student, ...partial }
+            : student,
+        ),
+      );
+    },
+    [],
+  );
+
+  const applyQueuedRenderIds = useCallback(
+    (studentUuids: string[], renderIds: string[]) => {
+      const renderIdByStudentUuid = new Map(
+        studentUuids.map((studentUuid, index) => [studentUuid, renderIds[index]]),
+      );
+
+      setStudents((prev) =>
+        prev.map((student) => {
+          const renderId = renderIdByStudentUuid.get(student.student_uuid);
+
+          if (!renderId) return student;
+
+          return {
+            ...student,
+            render_id: renderId,
+            render_status: "pending",
+            render_error: null,
+            render_progress: 0,
+          };
+        }),
+      );
+    },
+    [],
+  );
 
   const renderStudent = useCallback(
     async (student: Student) => {
@@ -117,7 +180,8 @@ export function useStudents(selectedRoom: string | null, options: UseStudentsOpt
         console.error("Render error:", error);
         markStudentStatus(student.student_uuid, {
           render_status: "failed",
-          render_error: error instanceof Error ? error.message : "Failed to start render.",
+          render_error:
+            error instanceof Error ? error.message : "Failed to start render.",
         });
         throw error;
       }
@@ -133,32 +197,85 @@ export function useStudents(selectedRoom: string | null, options: UseStudentsOpt
     [renderStudent],
   );
 
-  const renderSelectedStudents = useCallback(async () => {
-    const selected = students.filter((student) => selectedStudentIds.has(student.student_uuid));
+  const shouldRenderStudent = useCallback(
+    (student: Student, mode: BulkRenderMode) => {
+      if (isRenderProcessing(student.render_status)) return false;
 
-    for (const student of selected) {
-      if (isRenderProcessing(student.render_status)) continue;
-      await renderStudent(student);
-    }
-  }, [students, selectedStudentIds, renderStudent]);
+      if (mode === "missing-only") {
+        return !isRenderDone(student.render_status) || !student.render_url;
+      }
 
-  const renderWholeClass = useCallback(async () => {
-    console.log("🚀 ~ useStudents ~ students:", students);
-    for (const student of students) {
-      if (isRenderProcessing(student.render_status)) continue;
-      if (isRenderDone(student.render_status)) continue;
-      await renderStudent(student);
-    }
-  }, [students, renderStudent]);
-
-  const selectedStudents = useMemo(
-    () => students.filter((student) => selectedStudentIds.has(student.student_uuid)),
-    [students, selectedStudentIds],
+      return true;
+    },
+    [],
   );
 
-  const allSelected = students.length > 0 && selectedStudentIds.size === students.length;
+  const getRenderableStudents = useCallback(
+    (scopeStudents: Student[], mode: BulkRenderMode) => {
+      return scopeStudents.filter((student) =>
+        shouldRenderStudent(student, mode),
+      );
+    },
+    [shouldRenderStudent],
+  );
 
-  const someSelected = selectedStudentIds.size > 0 && selectedStudentIds.size < students.length;
+  const enqueueBulkRender = useCallback(
+    async (scopeStudents: Student[], mode: BulkRenderMode) => {
+      const studentsToRender = getRenderableStudents(scopeStudents, mode);
+
+      if (studentsToRender.length === 0) {
+        return [];
+      }
+
+      const studentUuids = studentsToRender.map((student) => student.student_uuid);
+
+      try {
+        markStudentsStatus(studentUuids, {
+          render_status: "pending",
+          render_error: null,
+          render_progress: 0,
+        });
+
+        const renderIds = await enqueueRenderForStudents(studentsToRender);
+
+        applyQueuedRenderIds(studentUuids, renderIds);
+
+        return studentsToRender;
+      } catch (error) {
+        console.error("Bulk render error:", error);
+
+        markStudentsStatus(studentUuids, {
+          render_status: "failed",
+          render_error:
+            error instanceof Error ? error.message : "Failed to start render.",
+        });
+
+        throw error;
+      }
+    },
+    [getRenderableStudents, markStudentsStatus, applyQueuedRenderIds],
+  );
+
+  const renderSelectedStudents = useCallback(
+    async (mode: BulkRenderMode = "missing-only") => {
+      const selected = students.filter((student) =>
+        selectedStudentIds.has(student.student_uuid),
+      );
+
+      return enqueueBulkRender(selected, mode);
+    },
+    [students, selectedStudentIds, enqueueBulkRender],
+  );
+
+  const renderWholeClass = useCallback(
+    async (mode: BulkRenderMode = "missing-only") => {
+      return enqueueBulkRender(students, mode);
+    },
+    [students, enqueueBulkRender],
+  );
+
+  const allSelected =
+    students.length > 0 && selectedStudentIds.size === students.length;
 
   const hasActiveRenders = useMemo(() => {
     return students.some((student) => isRenderProcessing(student.render_status));
@@ -184,7 +301,13 @@ export function useStudents(selectedRoom: string | null, options: UseStudentsOpt
         pollingIntervalRef.current = null;
       }
     };
-  }, [enableAutoPolling, selectedRoom, hasActiveRenders, pollIntervalMs, loadStudents]);
+  }, [
+    enableAutoPolling,
+    selectedRoom,
+    hasActiveRenders,
+    pollIntervalMs,
+    loadStudents,
+  ]);
 
   return {
     students,

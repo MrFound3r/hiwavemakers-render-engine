@@ -1,18 +1,7 @@
-// apps/web/lib/dashboard/api.ts
 import axios from "axios";
 import { API_BASE_URL } from "../consts";
 import type { Room, Student } from "@/types/dashboard";
 import { buildRenderPayload } from "./render";
-
-interface SendTemplateRecipientPayload {
-  recipientId: string;
-  videoUrl?: string; // or not  use ?
-  template_thumbnail?: string;
-  recipientData: {
-    fullName: string;
-    email: string;
-  };
-}
 
 export interface TemplateOption {
   id: string;
@@ -31,6 +20,10 @@ interface LatestTemplateHistory {
   created_at: string;
 }
 
+interface RenderQueueItem {
+  id?: string;
+}
+
 export async function fetchRooms(): Promise<Room[]> {
   const res = await axios.get(`${API_BASE_URL}/students/rooms`);
   return Array.isArray(res.data) ? res.data : [];
@@ -41,16 +34,50 @@ export async function fetchStudentsByRoom(roomUuid: string): Promise<Student[]> 
   return Array.isArray(res.data) ? res.data : [];
 }
 
-export async function enqueueRenderForStudent(student: Student): Promise<string> {
-  const renderResponse = await axios.post(`${API_BASE_URL}/render`, buildRenderPayload(student));
+export async function enqueueRenderForStudents(students: Student[]): Promise<string[]> {
+  if (students.length === 0) {
+    return [];
+  }
 
-  const renderId = renderResponse.data?.[0]?.id;
+  const payload = students.flatMap((student) => buildRenderPayload(student));
+
+  const renderResponse = await axios.post<RenderQueueItem[]>(`${API_BASE_URL}/render`, payload);
+
+  const queuedRenders = Array.isArray(renderResponse.data) ? renderResponse.data : [];
+
+  if (queuedRenders.length !== students.length) {
+    throw new Error(
+      `Unexpected render response length. Expected ${students.length}, received ${queuedRenders.length}.`,
+    );
+  }
+
+  const renderIds = queuedRenders.map((item, index) => {
+    const renderId = item?.id;
+
+    if (!renderId) {
+      throw new Error(`Render ID missing from render response at index ${index}.`);
+    }
+
+    return renderId;
+  });
+
+  await Promise.all(
+    students.map((student, index) =>
+      axios.patch(`${API_BASE_URL}/students/${student.room_uuid}/${student.student_uuid}/render-id`, {
+        renderId: renderIds[index],
+      }),
+    ),
+  );
+
+  return renderIds;
+}
+
+export async function enqueueRenderForStudent(student: Student): Promise<string> {
+  const [renderId] = await enqueueRenderForStudents([student]);
 
   if (!renderId) {
     throw new Error("Render ID missing from render response.");
   }
-
-  await axios.patch(`${API_BASE_URL}/students/${student.room_uuid}/${student.student_uuid}/render-id`, { renderId });
 
   return renderId;
 }

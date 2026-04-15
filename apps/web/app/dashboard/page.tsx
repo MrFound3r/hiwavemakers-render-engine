@@ -11,6 +11,8 @@ import { StudentsTable } from "@/components/dashboard/StudentsTable";
 import { useRooms } from "@/hooks/useRooms";
 import { useStudents } from "@/hooks/useStudents";
 import { POLL_INTERVAL_MS } from "@/lib/consts";
+import { BulkRenderDialog } from "@/components/dashboard/BulkRenderDialog";
+import { toast } from "sonner";
 
 export default function DashboardPage() {
   const { rooms, isLoadingRooms } = useRooms();
@@ -42,12 +44,14 @@ export default function DashboardPage() {
   const [bulkEmailDialogOpen, setBulkEmailDialogOpen] = useState(false);
   const [wholeClassEmailDialogOpen, setWholeClassEmailDialogOpen] = useState(false);
 
+  type BulkRenderScope = "selected" | "whole-class" | null;
+
+  const [bulkRenderDialogOpen, setBulkRenderDialogOpen] = useState(false);
+  const [bulkRenderScope, setBulkRenderScope] = useState<BulkRenderScope>(null);
+
   const selectedStudents = useMemo(
-    () =>
-      students.filter((student) =>
-        selectedStudentIds.has(student.student_uuid)
-      ),
-    [students, selectedStudentIds]
+    () => students.filter((student) => selectedStudentIds.has(student.student_uuid)),
+    [students, selectedStudentIds],
   );
 
   const emptyMessage = useMemo(() => {
@@ -79,6 +83,76 @@ export default function DashboardPage() {
     setWholeClassEmailDialogOpen(true);
   };
 
+  const openRenderSelectedDialog = () => {
+    if (selectedStudents.length === 0) {
+      alert("Select at least one student.");
+      return;
+    }
+
+    setBulkRenderScope("selected");
+    setBulkRenderDialogOpen(true);
+  };
+
+  const openRenderWholeClassDialog = () => {
+    if (students.length === 0) {
+      alert("There are no students in this class.");
+      return;
+    }
+
+    setBulkRenderScope("whole-class");
+    setBulkRenderDialogOpen(true);
+  };
+
+  const handleConfirmBulkRender = async (mode: "missing-only" | "rerender-all") => {
+    try {
+      if (bulkRenderScope === "selected") {
+        const queuedStudents = await renderSelectedStudents(mode);
+        const queuedCount = queuedStudents.length;
+        const skippedCount = selectedStudents.length - queuedCount;
+
+        if (queuedCount === 0) {
+          toast.info(
+            mode === "missing-only"
+              ? "No selected students needed rendering."
+              : "No selected students could be queued right now.",
+          );
+          return;
+        }
+
+        toast.success(
+          mode === "missing-only"
+            ? `Queued ${queuedCount} selected render${queuedCount === 1 ? "" : "s"}${skippedCount > 0 ? ` • ${skippedCount} skipped` : ""}.`
+            : `Queued ${queuedCount} selected re-render${queuedCount === 1 ? "" : "s"}${skippedCount > 0 ? ` • ${skippedCount} skipped` : ""}.`,
+        );
+        return;
+      }
+
+      if (bulkRenderScope === "whole-class") {
+        const queuedStudents = await renderWholeClass(mode);
+        const queuedCount = queuedStudents.length;
+        const skippedCount = students.length - queuedCount;
+
+        if (queuedCount === 0) {
+          toast.info(
+            mode === "missing-only"
+              ? "No students in this class needed rendering."
+              : "No students in this class could be queued right now.",
+          );
+          return;
+        }
+
+        toast.success(
+          mode === "missing-only"
+            ? `Queued ${queuedCount} class render${queuedCount === 1 ? "" : "s"}${skippedCount > 0 ? ` • ${skippedCount} skipped` : ""}.`
+            : `Queued ${queuedCount} class re-render${queuedCount === 1 ? "" : "s"}${skippedCount > 0 ? ` • ${skippedCount} skipped` : ""}.`,
+        );
+      }
+    } catch (error) {
+      console.error("Bulk render failed:", error);
+      toast.error("Failed to queue bulk render.");
+    }
+  };
+
   return (
     <div className="flex h-screen bg-background text-foreground">
       <RoomsSidebar
@@ -94,7 +168,7 @@ export default function DashboardPage() {
           students={students}
           isRefreshing={isRefreshingStudents}
           onRefresh={refreshStudents}
-          onRenderWholeClass={renderWholeClass}
+          onRenderWholeClass={openRenderWholeClassDialog}
           onEmailWholeClass={openWholeClassEmailDialog}
           hasActiveRenders={hasActiveRenders}
           pollIntervalMs={pollIntervalMs}
@@ -110,7 +184,7 @@ export default function DashboardPage() {
               <BulkActionsBar
                 selectedCount={selectedStudentIds.size}
                 onClearSelection={() => toggleSelectAll(false)}
-                onRenderSelected={renderSelectedStudents}
+                onRenderSelected={openRenderSelectedDialog}
                 onEmailSelected={openBulkEmailDialog}
               />
 
@@ -152,6 +226,22 @@ export default function DashboardPage() {
         wholeClass
         onOpenChange={setWholeClassEmailDialogOpen}
         onSent={refreshStudents}
+      />
+
+      <BulkRenderDialog
+        open={bulkRenderDialogOpen}
+        title={bulkRenderScope === "selected" ? "Render Selected Students" : "Render Whole Class"}
+        description={
+          bulkRenderScope === "selected"
+            ? "Choose whether to render only students who do not have a completed video yet, or re-render all selected students."
+            : "Choose whether to render only students who do not have a completed video yet, or re-render the entire class."
+        }
+        scopeCount={bulkRenderScope === "selected" ? selectedStudents.length : students.length}
+        onOpenChange={(open) => {
+          setBulkRenderDialogOpen(open);
+          if (!open) setBulkRenderScope(null);
+        }}
+        onConfirm={handleConfirmBulkRender}
       />
     </div>
   );
