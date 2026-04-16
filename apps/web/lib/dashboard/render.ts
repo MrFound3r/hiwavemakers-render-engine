@@ -1,7 +1,6 @@
 // apps/web/lib/dashboard/render.ts
 import type { RenderFragment, Student } from "@/types/dashboard";
-import { DEFAULT_COMPOSITION_ID, DEFAULT_OUTRO_URL } from "./consts";
-import { API_BASE_URL } from "../consts";
+import { API_BASE_URL, DEFAULT_COMPOSITION_ID, DEFAULT_OUTRO_URL } from "../consts";
 
 export function buildRenderFragments(student: Student): RenderFragment[] {
   return (student.videos || []).map((videoUrl, index) => ({
@@ -18,7 +17,8 @@ export function buildRenderPayload(student: Student) {
       inputProps: {
         studentName: student.name,
         fragments: buildRenderFragments(student),
-        outro: DEFAULT_OUTRO_URL,       
+        outro: DEFAULT_OUTRO_URL,
+       
       },
     },
   ];
