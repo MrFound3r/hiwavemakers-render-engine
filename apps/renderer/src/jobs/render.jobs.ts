@@ -22,6 +22,60 @@ const VIDEO_RENDER_BITRATE = process.env.VIDEO_RENDER_BITRATE || "1000k";
 const VIDEO_RENDER_AUDIO_CODEC = process.env.VIDEO_RENDER_AUDIO_CODEC || "aac";
 const VIDEO_RENDER_VIDEO_CODEC = process.env.VIDEO_RENDER_VIDEO_CODEC || "h264";
 const VIDEO_RENDER_TIMEOUT_MS = parseInt(process.env.VIDEO_RENDER_TIMEOUT_MS ?? "30000", 10);
+const VIDEO_RENDER_IMAGE_FORMAT = (process.env.VIDEO_RENDER_IMAGE_FORMAT || "png").toLowerCase();
+const VIDEO_RENDER_HARDWARE_ACCELERATION = (process.env.VIDEO_RENDER_HARDWARE_ACCELERATION || "disabled").toLowerCase();
+const VIDEO_RENDER_JPEG_QUALITY = parseInt(process.env.VIDEO_RENDER_JPEG_QUALITY ?? "95", 10);
+const VIDEO_RENDER_CRF = parseInt(process.env.VIDEO_RENDER_CRF ?? "18", 10);
+const VIDEO_RENDER_COLOR_SPACE = process.env.VIDEO_RENDER_COLOR_SPACE || "bt709";
+const VIDEO_RENDER_QUALITY_MODE = (process.env.VIDEO_RENDER_QUALITY_MODE || "crf").toLowerCase();
+
+type RenderQualityMode = "crf" | "bitrate";
+
+function isHardwareAccelerationEnabled(value: string): boolean {
+  return !["disabled", "off", "false", "none", "no"].includes(value);
+}
+
+function assertIntegerInRange(name: string, value: number, min: number, max: number) {
+  if (!Number.isInteger(value) || value < min || value > max) {
+    throw new Error(`${name} must be an integer between ${min} and ${max}. Received: ${value}`);
+  }
+}
+
+function assertNonEmpty(name: string, value: string) {
+  if (!value || !value.trim()) {
+    throw new Error(`${name} must not be empty.`);
+  }
+}
+
+function normalizeQualityMode(value: string): RenderQualityMode {
+  if (value === "crf" || value === "bitrate") {
+    return value;
+  }
+
+  throw new Error(`VIDEO_RENDER_QUALITY_MODE must be either "crf" or "bitrate". Received: ${value}`);
+}
+
+function buildRenderQualityOptions(): { crf: number } | { videoBitrate: string } {
+  const qualityMode = normalizeQualityMode(VIDEO_RENDER_QUALITY_MODE);
+  const hardwareAccelerationEnabled = isHardwareAccelerationEnabled(VIDEO_RENDER_HARDWARE_ACCELERATION);
+
+  assertIntegerInRange("VIDEO_RENDER_CRF", VIDEO_RENDER_CRF, 0, 51);
+  assertIntegerInRange("VIDEO_RENDER_JPEG_QUALITY", VIDEO_RENDER_JPEG_QUALITY, 0, 100);
+  assertNonEmpty("VIDEO_RENDER_BITRATE", VIDEO_RENDER_BITRATE);
+
+  if (qualityMode === "crf") {
+    if (hardwareAccelerationEnabled) {
+      throw new Error(
+        `VIDEO_RENDER_QUALITY_MODE=crf cannot be used when hardware acceleration is enabled (${VIDEO_RENDER_HARDWARE_ACCELERATION}). ` +
+          `Set VIDEO_RENDER_HARDWARE_ACCELERATION=disabled or switch VIDEO_RENDER_QUALITY_MODE=bitrate.`,
+      );
+    }
+
+    return { crf: VIDEO_RENDER_CRF };
+  }
+
+  return { videoBitrate: VIDEO_RENDER_BITRATE };
+}
 
 console.log("Video Render Concurrency set to:", VIDEO_RENDER_CONCURRENCY);
 
@@ -74,7 +128,7 @@ const getThumbnailCompositionId = (compositionId: string) => {
 };
 
 const getThumbnailOutputPath = (jobId: string) => {
-  return path.join(config.storagePath, "renders", `${jobId}-thumbnail.jpg`);
+  return path.join(config.storagePath, "renders", `${jobId}-thumbnail.png`);
 };
 
 export async function renderJob(job: RenderJob) {
@@ -163,39 +217,65 @@ export async function renderJob(job: RenderJob) {
     const { cancelSignal, cancel } = makeCancelSignal();
     activeRenders.set(job.id, { cancel });
 
-    const renderRes = await renderMedia({
-      composition: {
-        ...composition,
-        durationInFrames: timeline.totalFrames,
-      },
-      serveUrl: bundleLocation,
-      timeoutInMilliseconds: VIDEO_RENDER_TIMEOUT_MS,
-      concurrency: VIDEO_RENDER_CONCURRENCY,
-      audioCodec: VIDEO_RENDER_AUDIO_CODEC as any,
-      videoBitrate: VIDEO_RENDER_BITRATE,
-      imageFormat: "jpeg",
-      hardwareAcceleration: "if-possible",
-      codec: VIDEO_RENDER_VIDEO_CODEC as any,
-      mediaCacheSizeInBytes: 512 * 1024 * 1024, // example: 512MB
-      disallowParallelEncoding: true,
-      outputLocation: output,
-      inputProps,
-      cancelSignal,
-      onProgress: async (progress) => {
-        console.log(
-          `Render progress: ${Math.round(progress.progress * 100)}% | Frame: ${progress.renderedFrames} | Render ETA: ${progress.renderEstimatedTime} | Render Done In: ${progress.renderedDoneIn}`,
-        );
+    function buildRenderMediaOptions(params: {
+      composition: typeof composition;
+      totalFrames: number;
+      serveUrl: string;
+      output: string;
+      inputProps: typeof inputProps;
+      cancelSignal: typeof cancelSignal;
+      onProgress: (progress: any) => Promise<void>;
+    }) {
+      const qualityOptions = buildRenderQualityOptions();
 
-        const [rows]: any = await db.query(`SELECT cancelled FROM renders WHERE id = ?`, [job.id]);
+      return {
+        composition: {
+          ...params.composition,
+          durationInFrames: params.totalFrames,
+        },
+        serveUrl: params.serveUrl,
+        timeoutInMilliseconds: VIDEO_RENDER_TIMEOUT_MS,
+        concurrency: VIDEO_RENDER_CONCURRENCY,
+        audioCodec: VIDEO_RENDER_AUDIO_CODEC as any,
+        imageFormat: VIDEO_RENDER_IMAGE_FORMAT as any,
+        hardwareAcceleration: VIDEO_RENDER_HARDWARE_ACCELERATION as any,
+        codec: VIDEO_RENDER_VIDEO_CODEC as any,
+        colorSpace: VIDEO_RENDER_COLOR_SPACE as any,
+        mediaCacheSizeInBytes: 512 * 1024 * 1024,
+        disallowParallelEncoding: true,
+        outputLocation: params.output,
+        inputProps: params.inputProps,
+        cancelSignal: params.cancelSignal,
+        onProgress: params.onProgress,
+        ...(VIDEO_RENDER_IMAGE_FORMAT === "jpeg" ? { jpegQuality: VIDEO_RENDER_JPEG_QUALITY } : {}),
+        ...qualityOptions,
+      };
+    }
 
-        if (rows[0]?.cancelled) {
-          cancel();
-          return;
-        }
+    const renderRes = await renderMedia(
+      buildRenderMediaOptions({
+        composition,
+        totalFrames: timeline.totalFrames,
+        serveUrl: bundleLocation,
+        output,
+        inputProps,
+        cancelSignal,
+        onProgress: async (progress) => {
+          console.log(
+            `Render progress: ${Math.round(progress.progress * 100)}% | Frame: ${progress.renderedFrames} | Render ETA: ${progress.renderEstimatedTime} | Render Done In: ${progress.renderedDoneIn}`,
+          );
 
-        await db.query(`UPDATE renders SET progress = ? WHERE id = ?`, [progress.progress, job.id]);
-      },
-    });
+          const [rows]: any = await db.query(`SELECT cancelled FROM renders WHERE id = ?`, [job.id]);
+
+          if (rows[0]?.cancelled) {
+            cancel();
+            return;
+          }
+
+          await db.query(`UPDATE renders SET progress = ? WHERE id = ?`, [progress.progress, job.id]);
+        },
+      }),
+    );
 
     console.log("renderRes:", renderRes);
 
@@ -219,7 +299,7 @@ export async function renderJob(job: RenderJob) {
         serveUrl: bundleLocation,
         output: thumbnailOutput,
         inputProps,
-        imageFormat: "jpeg",
+        imageFormat: "png",
       });
     }
 
