@@ -4,13 +4,19 @@ For the app to work you need NodeJs, MySQL and disable a setting in Chrome
 
 ## Install dependencies
 
-1. Open up a terminal in the root folder
+1. In the root folder look for "run-build.bat". This has to be done just the first time.
 
-2. Run the command
+2. Double click on the file and wait for the servers to run
 
-        npm install
+3. Wait for the file to run
 
-3. Wait for the node modules to install
+## Set up database
+
+1. Install MySQL in the computer or Xampp
+
+2. Look for the file in "packages/db/schema.sql"
+
+3. Run the query to create the database and its tables
 
 ## Configure Chrome
 
@@ -26,9 +32,11 @@ For the app to work you need NodeJs, MySQL and disable a setting in Chrome
 
 ## Start the app
 
-1. In the root folder look for "run-dev-preview.bat"
+1. In the root folder look for "run-build.bat". This has to be done just the first time.
 
-2. Double click on the file and wait for the servers to run
+2. In the root folder look for "run-start.bat".
+
+3. Double click on the file and wait for the servers to run
 
 ## Render videos
 
